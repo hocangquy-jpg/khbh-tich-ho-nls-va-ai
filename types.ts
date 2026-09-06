@@ -1,5 +1,6 @@
 export enum ProcessingStatus {
   IDLE = 'IDLE',
+  GREETING = 'GREETING',
   ANALYZING = 'ANALYZING',
   COMPLETED = 'COMPLETED',
   ERROR = 'ERROR'

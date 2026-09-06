@@ -1,6 +1,6 @@
 
 import React, { useRef, useState } from 'react';
-import { BookOpen, Sparkles, Image as ImageIcon, FileText, FileUp, Target, Trash2, X, Paperclip, Clock, ShieldCheck } from 'lucide-react';
+import { BookOpen, Sparkles, Image as ImageIcon, FileText, FileUp, Target, Trash2, X, Paperclip, Clock, ShieldCheck, Volume2 } from 'lucide-react';
 import { ProcessingStatus, MediaInput } from '../types';
 import { DEFAULT_LESSON_PLAN } from '../constants';
 import { CompetencySelector } from './CompetencySelector';
@@ -14,6 +14,7 @@ interface InputSectionProps {
   sessionDetails: string;
   onSessionDetailsChange: (val: string) => void;
   onAnalyze: () => void;
+  onSkipGreeting?: () => void;
   status: ProcessingStatus;
   selectedCompetencyIds: string[];
   onCompetencyChange: (ids: string[]) => void;
@@ -31,6 +32,7 @@ export const InputSection: React.FC<InputSectionProps> = ({
   sessionDetails,
   onSessionDetailsChange,
   onAnalyze, 
+  onSkipGreeting,
   status,
   selectedCompetencyIds,
   onCompetencyChange,
@@ -39,7 +41,9 @@ export const InputSection: React.FC<InputSectionProps> = ({
   focusArea,
   onFocusAreaChange
 }) => {
-  const isLoading = status === ProcessingStatus.ANALYZING;
+  const isGreeting = status === ProcessingStatus.GREETING;
+  const isAnalyzing = status === ProcessingStatus.ANALYZING;
+  const isLoading = isGreeting || isAnalyzing;
   const imageInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
   const [isReadingFile, setIsReadingFile] = useState(false);
@@ -285,16 +289,54 @@ export const InputSection: React.FC<InputSectionProps> = ({
           disabled={isLoading || isReadingFile || !hasContent || (selectedCompetencyIds.length === 0 && selectedAICompetencyIds.length === 0)}
           className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl font-black text-sm uppercase tracking-widest text-white transition-all transform border-2 border-[#1a230f]
             ${isLoading || isReadingFile || !hasContent || (selectedCompetencyIds.length === 0 && selectedAICompetencyIds.length === 0)
-              ? 'bg-slate-300 cursor-not-allowed grayscale' 
+              ? (isGreeting ? 'bg-amber-600 shadow-[6px_6px_0_0_rgba(26,35,15,1)] animate-pulse' : 'bg-slate-300 cursor-not-allowed grayscale')
               : 'bg-lime-800 hover:bg-lime-900 shadow-[6px_6px_0_0_rgba(26,35,15,1)] active:translate-y-1 active:shadow-none'
             }`}
         >
-          {isLoading ? (
-            <><span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" /><span>Đang tích hợp...</span></>
+          {isGreeting ? (
+            <div className="flex items-center gap-2">
+              <Volume2 className="w-6 h-6 animate-bounce text-yellow-200" />
+              <span>Thiên sứ tình yêu đang kính chào...</span>
+            </div>
+          ) : isAnalyzing ? (
+            <div className="flex items-center gap-2">
+              <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+              <span>Đang tích hợp Năng Lực Số & AI...</span>
+            </div>
           ) : (
-            <><Sparkles className="w-6 h-6" /><span>Tích hợp Năng lực số ngay</span></>
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-6 h-6" />
+              <span>Tích hợp Năng lực số ngay</span>
+            </div>
           )}
         </button>
+
+        {isGreeting && (
+          <div className="mt-3 p-3 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-500 rounded-xl shadow-sm flex items-center justify-between gap-3 text-amber-950 text-xs animate-fadeIn">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-amber-200 border border-amber-600 flex items-center justify-center shrink-0">
+                <Volume2 className="w-4 h-4 text-amber-900 animate-pulse" />
+              </div>
+              <div>
+                <p className="font-black text-amber-900">
+                  🌸 Trợ lý Thiên sứ tình yêu (THPT Chu Văn An)
+                </p>
+                <p className="italic text-amber-800 text-[11px] line-clamp-1">
+                  &ldquo;Xin kính chào quý thầy, quý cô, em là Thiên sứ tình yêu, là trợ lý của thầy Hồ Cang...&rdquo;
+                </p>
+              </div>
+            </div>
+            {onSkipGreeting && (
+              <button
+                type="button"
+                onClick={onSkipGreeting}
+                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-lg text-xs whitespace-nowrap shadow transition-all active:scale-95"
+              >
+                Tích hợp ngay &rarr;
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

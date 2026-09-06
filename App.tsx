@@ -5,10 +5,11 @@ import SnowEffect from './components/SnowEffect';
 import { DEFAULT_LESSON_PLAN, DIGITAL_COMPETENCIES, AI_COMPETENCIES } from './constants';
 import { ProcessingStatus, LessonPlanResponse, MediaInput } from './types';
 import { generateEnhancedLessonPlan } from './services/geminiService';
+import { playHueGreetingVoice } from './services/voiceAssistant';
 import { LayoutGrid, AlertCircle, Sparkles, Music, Snowflake, Volume2, VolumeX } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [inputContent, setInputContent] = useState<string>(DEFAULT_LESSON_PLAN);
+  const [inputContent, setInputContent] = useState<string>("");
   const [mediaInputs, setMediaInputs] = useState<MediaInput[]>([]);
   const [sessionDetails, setSessionDetails] = useState<string>("");
   const [selectedCompetencyIds, setSelectedCompetencyIds] = useState<string[]>(DIGITAL_COMPETENCIES.map(c => c.id));
@@ -24,13 +25,12 @@ const App: React.FC = () => {
   const [musicUrl, setMusicUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const musicInputRef = useRef<HTMLInputElement | null>(null);
+  const greetingCancelRef = useRef<(() => void) | null>(null);
 
-  const handleAnalyze = async () => {
-    if (selectedCompetencyIds.length === 0 && selectedAICompetencyIds.length === 0) {
-      setErrorMessage("Vui lòng chọn ít nhất một năng lực số hoặc năng lực AI để tích hợp.");
-      return;
+  const startIntegration = async () => {
+    if (audioRef.current && isMusicPlaying) {
+      audioRef.current.volume = 1.0;
     }
-    setErrorMessage(null);
     setStatus(ProcessingStatus.ANALYZING);
     try {
       const result = await generateEnhancedLessonPlan(
@@ -48,7 +48,46 @@ const App: React.FC = () => {
     }
   };
 
+  const handleAnalyze = async () => {
+    if (selectedCompetencyIds.length === 0 && selectedAICompetencyIds.length === 0) {
+      setErrorMessage("Vui lòng chọn ít nhất một năng lực số hoặc năng lực AI để tích hợp.");
+      return;
+    }
+    setErrorMessage(null);
+
+    // Dim background music if playing so voice is crystal clear
+    if (audioRef.current && isMusicPlaying) {
+      audioRef.current.volume = 0.2;
+    }
+
+    // Set greeting status
+    setStatus(ProcessingStatus.GREETING);
+
+    // Play Hue assistant gentle voice greeting
+    greetingCancelRef.current = playHueGreetingVoice(
+      () => {
+        // Voice greeting started
+      },
+      () => {
+        // Voice greeting ended -> seamlessly trigger AI integration
+        greetingCancelRef.current = null;
+        startIntegration();
+      }
+    );
+  };
+
+  const handleSkipGreeting = () => {
+    if (greetingCancelRef.current) {
+      greetingCancelRef.current();
+      greetingCancelRef.current = null;
+    }
+  };
+
   const handleClearOutput = () => {
+    if (greetingCancelRef.current) {
+      greetingCancelRef.current();
+      greetingCancelRef.current = null;
+    }
     setOutputData(null);
     setStatus(ProcessingStatus.IDLE);
   };
@@ -71,6 +110,14 @@ const App: React.FC = () => {
       }
     }
   }, [isMusicPlaying, musicUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (greetingCancelRef.current) {
+        greetingCancelRef.current();
+      }
+    };
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-[#1a230f] bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-[#4b5320] via-[#2d3319] to-[#1a1e0b] relative">
@@ -171,6 +218,7 @@ const App: React.FC = () => {
               sessionDetails={sessionDetails}
               onSessionDetailsChange={setSessionDetails}
               onAnalyze={handleAnalyze}
+              onSkipGreeting={handleSkipGreeting}
               status={status}
               selectedCompetencyIds={selectedCompetencyIds}
               onCompetencyChange={setSelectedCompetencyIds}
