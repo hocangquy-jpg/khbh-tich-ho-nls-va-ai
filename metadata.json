@@ -1,0 +1,8 @@
+{
+  "name": "Remix TRỢ LÝ TÍCH HỢP NLS \u0026AI",
+  "description": "An intelligent tool for teachers to automatically integrate the Digital Competence Framework (Khung Năng Lực Số) into their existing lesson plans using Gemini AI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
