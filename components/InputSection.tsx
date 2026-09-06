@@ -62,6 +62,36 @@ export const InputSection: React.FC<InputSectionProps> = ({
             const mammoth = await import('mammoth');
             const arrayBuffer = await file.arrayBuffer();
             const result = await mammoth.convertToHtml({ arrayBuffer });
+            
+            // Pre-process HTML to prevent nested tables inside table cells from breaking the outer table markdown layout
+            let processedHtml = result.value;
+            if (typeof window !== 'undefined' && typeof DOMParser !== 'undefined') {
+              try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(processedHtml, 'text/html');
+                
+                // Find all nested tables inside td or th
+                const nestedTables = doc.querySelectorAll('td table, th table');
+                nestedTables.forEach(nestedTable => {
+                  const rows = Array.from(nestedTable.querySelectorAll('tr'));
+                  const lines: string[] = [];
+                  rows.forEach(tr => {
+                    const cells = Array.from(tr.querySelectorAll('th, td')).map(c => c.textContent?.trim() || '');
+                    if (cells.length > 0 && cells.some(Boolean)) {
+                      lines.push(cells.join('  •  '));
+                    }
+                  });
+                  const replacement = doc.createElement('div');
+                  replacement.innerHTML = '<br><strong>[Bảng số liệu con:]</strong><br>' + lines.map(l => `• ${l}`).join('<br>') + '<br>';
+                  nestedTable.parentNode?.replaceChild(replacement, nestedTable);
+                });
+                
+                processedHtml = doc.body.innerHTML;
+              } catch (e) {
+                console.error("Error preprocessing HTML nested tables:", e);
+              }
+            }
+
             const TurndownService = (await import('turndown')).default;
             const { gfm } = await import('turndown-plugin-gfm');
             const turndownService = new TurndownService({
@@ -69,7 +99,7 @@ export const InputSection: React.FC<InputSectionProps> = ({
               bulletListMarker: '-',
             });
             turndownService.use(gfm);
-            const markdown = turndownService.turndown(result.value);
+            const markdown = turndownService.turndown(processedHtml);
             return { 
               type: 'text', 
               content: isReplacingDefault && files.length === 1 ? markdown : `\n\n--- [Nội dung file: ${file.name}] ---\n${markdown}` 

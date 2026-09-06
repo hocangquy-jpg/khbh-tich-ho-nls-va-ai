@@ -46,10 +46,26 @@ export const generateEnhancedLessonPlan = async (
          => TUYỆT ĐỐI KHÔNG tự ý chuyển phần văn bản đó thành bảng 5 cột hay bất kỳ bảng nào!
          => Tích hợp NLS và NLAI trực tiếp vào văn bản các bước (nêu rõ GV giao nhiệm vụ công nghệ số/AI gì, HS dùng phần mềm/thiết bị/công cụ AI nào, thao tác ra sao, sản phẩm số thu được là gì, kèm mã NLS/NLAI tương ứng).
 
-    2. QUY TẮC DẠNG CỘT / DẠNG BẢNG (Table / Columns):
-       - Nếu phần nào trong bản gốc ở DẠNG BẢNG / CỘT (ví dụ: bảng ma trận tổng quan phân bổ thời gian gồm các cột "STT | Hoạt động dạy học | Thời lượng | Phương pháp / Kĩ thuật chủ đạo | Sản phẩm học tập dự kiến | Mã hoá NLS / NL AI tích hợp", hoặc bảng 2 cột "Hoạt động của giáo viên | Hoạt động của học sinh", hoặc bảng 3, 4 cột...):
+    2. QUY TẮC DẠNG CỘT / DẠNG BẢNG (Table / Columns) - YÊU CẦU ĐẶC BIỆT KHOA HỌC & TUYỆT ĐỐI KHÔNG LÀM VỠ CỘT:
+       - Nếu phần nào trong bản gốc ở DẠNG BẢNG / CỘT (ví dụ: bảng ma trận tổng quan phân bổ thời gian gồm các cột "STT | Hoạt động dạy học | Thời lượng | Phương pháp / Kĩ thuật chủ đạo | Sản phẩm học tập dự kiến | Mã hoá NLS / NL AI tích hợp", hoặc bảng 2 cột "HOẠT ĐỘNG CỦA GV - HS | DỰ KIẾN SẢN PHẨM", hoặc bảng 3, 4, 5, 6 cột...):
          => BẮT BUỘC GIỮ NGUYÊN ĐÚNG BẢNG ĐÓ VỚI ĐÚNG SỐ CỘT VÀ TIÊU ĐỀ CỘT CỦA BẢN GỐC!
          => TUYỆT ĐỐI KHÔNG thêm bớt cột, không biến bảng 2 cột thành bảng 5 cột, không làm xáo trộn bố cục bảng của file gốc!
+         => Cú pháp bảng Markdown bắt buộc chuẩn mực:
+            | Tiêu đề cột 1 | Tiêu đề cột 2 | Tiêu đề cột 3 | ... |
+            | :--- | :--- | :--- | ... |
+            | Dòng dữ liệu | Dòng dữ liệu | Dòng dữ liệu | ... |
+         => NGUYÊN TẮC BẤT KHẢ XÂM PHẠM VỀ TÍNH TOÀN VẸN CỘT (CHỐNG VỠ BẢNG):
+            + Nếu bảng có N cột (ví dụ bảng 2 cột: HOẠT ĐỘNG CỦA GV - HS | DỰ KIẾN SẢN PHẨM), thì MỌI HÀNG TRONG BẢNG PHẢI CÓ CHÍNH XÁC N CỘT.
+            + TUYỆT ĐỐI KHÔNG DÙNG KÝ TỰ "|" BÊN TRONG NỘI DUNG Ô (Đặc biệt: TUYỆT ĐỐI KHÔNG chèn cú pháp bảng con có dấu gạch đứng "| Đồng vị | 32S | 33S |" hay "| :- | :- |" vào trong ô Dự kiến sản phẩm hoặc bất kỳ ô nào). Điều này sẽ xé vỡ bảng thành 8-9 cột dị dạng và làm nát file Word!
+            + Nếu trong ô có bảng con hoặc số liệu (ví dụ: bảng đồng vị của Sulfur, bảng số liệu thực nghiệm, phương trình hóa học):
+              BẮT BUỘC trình bày dạng danh sách ngắt dòng bằng thẻ <br>:
+              Ví dụ:
+              [Bảng đồng vị của Sulfur:]<br>• Đồng vị: 32S (95.02%), 33S (0.75%), 34S (4.21%), 36S (0.02%)
+              Hoặc:
+              • Đồng vị: 32S (95.02%) &nbsp;•&nbsp; 33S (0.75%) &nbsp;•&nbsp; 34S (4.21%) &nbsp;•&nbsp; 36S (0.02%)
+            + Khi trong một ô có nhiều bước (ví dụ: Bước 1: Chuyển giao..., Bước 2: Thực hiện...), BẮT BUỘC dùng thẻ <br> giữa các dòng để ngắt dòng sạch sẽ, KHÔNG xuống dòng làm đứt bảng Markdown.
+            + Các bước ghi rõ ràng: "Bước 1: ...<br>Bước 2: ...<br>Bước 3: ...<br>Bước 4: ...".
+            + Ghi rõ mã năng lực số và AI trong ngoặc vuông (ví dụ: [Mã 1.1.NC1b], [Mã 11.C3.2]) để hệ thống xuất Word tự động làm nổi bật và định dạng chuẩn giáo án.
          => Chèn/tích hợp nội dung NLS/NLAI vào đúng các cột tương ứng của bảng gốc.
 
     3. QUY TẮC PHỐI HỢP NẾU BẢN GỐC KẾT HỢP CẢ HAI (DẠNG CHUẨN CỦA BỘ GD&ĐT):
