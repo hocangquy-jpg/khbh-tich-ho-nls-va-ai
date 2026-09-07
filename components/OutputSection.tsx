@@ -30,16 +30,18 @@ export const formatChemistryAndMath = (text: string): string => {
   return text
     .replace(/\\rightarrow|->/g, '→')
     .replace(/\\rightleftharpoons|<=>/g, '⇌')
-    // $^{32}S$ or $^{32}$
-    .replace(/\$\^\{([^}]+)\}([A-Za-z0-9+*-]*)\$/g, (_, sup, rest) => toSup(sup) + rest)
+    .replace(/\\cdot/g, '·')
+    .replace(/\\times/g, '×')
+    .replace(/\\le/g, '≤')
+    .replace(/\\ge/g, '≥')
+    .replace(/\\ne/g, '≠')
+    // ^{...} and _{...}
     .replace(/\^\{([^}]+)\}/g, (_, sup) => toSup(sup))
-    .replace(/\$_\{([^}]+)\}([A-Za-z0-9+*-]*)\$/g, (_, sub, rest) => toSub(sub) + rest)
     .replace(/_\{([^}]+)\}/g, (_, sub) => toSub(sub))
-    .replace(/\$([A-Za-z0-9_{}^+-]+)\$/g, (_, inner) => {
-      return inner
-        .replace(/\^([0-9+-]+)/g, (_2: string, s: string) => toSup(s))
-        .replace(/_([0-9+-]+)/g, (_2: string, s: string) => toSub(s));
-    });
+    // ^2 or ^+ or _2 or _3
+    .replace(/\^([0-9+-n]+)/g, (_, sup) => toSup(sup))
+    .replace(/_([0-9+-]+)/g, (_, sub) => toSub(sub))
+    .replace(/\$/g, '');
 };
 
 // Sanitize and normalize table rows to strictly guarantee that all rows have exactly the same number of columns as the header
@@ -123,12 +125,94 @@ const calculateColumnWidths = (headerCells: string[]): number[] => {
   return percentages;
 };
 
+// Intelligently normalize heading hierarchy and guarantee clean line breaks between headings, subsections and steps
+export const normalizeHeadingsHierarchy = (text: string): string => {
+  if (!text) return "";
+  const lines = text.split('\n');
+  const result: string[] = [];
+
+  for (const rawLine of lines) {
+    const trimmed = rawLine.trim();
+    // Do not split inside markdown table rows
+    if (trimmed.startsWith('|')) {
+      result.push(rawLine);
+      continue;
+    }
+
+    let line = rawLine;
+
+    // 1. Break before Major Headings: I. II. III. IV. V. VI. VII. VIII. IX. X.
+    line = line.replace(/([^\n])\s+((?:I|II|III|IV|V|VI|VII|VIII|IX|X)\.\s+[A-ZÀ-ỸĐ])/g, "$1\n\n$2");
+
+    // 2. Break before numeric sections: "1. Về kiến thức", "2. Về năng lực", "1. Giáo viên:", "2. Học sinh:"
+    line = line.replace(/((?:I|II|III|IV|V|VI|VII|VIII|IX|X)\.[^\n\d]+?)\s+(\d+\.\s+[A-ZÀ-ỸĐ])/g, "$1\n$2");
+    line = line.replace(/([.:;!?])\s+(\d+\.\s+[A-ZÀ-ỸĐ])/g, "$1\n$2");
+
+    // 3. Break before Hoạt động 1, Hoạt động 2...
+    line = line.replace(/((?:I|II|III|IV|V|VI|VII|VIII|IX|X)\.[^\n]+?)\s+(Hoạt động\s+\d+[:.])/gi, "$1\n\n$2");
+    line = line.replace(/([.:;!?])\s+(Hoạt động\s+\d+[:.])/gi, "$1\n\n$2");
+    line = line.replace(/([^\n])\s+(HOẠT ĐỘNG\s+\d+[:.])/g, "$1\n\n$2");
+
+    // 4. Break before alpha subsections: a) Mục tiêu, b) Nội dung, c) Sản phẩm, d) Tổ chức thực hiện, a) Năng lực chung...
+    line = line.replace(/(\d+\.[^\n]+?:)\s+([a-e][\)\.]\s+[A-ZÀ-ỸĐ])/g, "$1\n$2");
+    line = line.replace(/(Hoạt động\s+\d+[:.][^\n]+?)\s+([a-e][\)\.]\s+[A-ZÀ-ỸĐ])/gi, "$1\n$2");
+    line = line.replace(/([.:;!?])\s+([a-e][\)\.]\s+[A-ZÀ-ỸĐ])/g, "$1\n$2");
+
+    // 5. Break before Steps: Bước 1, Bước 2, Bước 3, Bước 4
+    line = line.replace(/([.:;!?])\s+(-?\s*Bước\s+\d+:?)/gi, "$1\n$2");
+    line = line.replace(/([a-e][\)\.][^\n]+?:)\s+(-?\s*Bước\s+\d+:?)/gi, "$1\n$2");
+
+    // 6. Break before bullets (+ or - or •) when following punctuation
+    line = line.replace(/([;.:])\s+([•\-\+]\s+[A-ZÀ-ỸĐa-z0-9])/g, "$1\n$2");
+
+    // Helper: Normalize excessive ALL-CAPS text (giữ nguyên câu hoa đầu chuẩn tiếng Việt, không hét ALL-CAPS)
+    const fixLineCasing = (txt: string): string => {
+      const trimmed = txt.trim();
+      if (!trimmed || trimmed.startsWith('|')) return txt;
+      // Do not touch short standard headings like "I. MỤC TIÊU" (less than 35 chars)
+      if (/^(?:I|II|III|IV|V|VI|VII|VIII|IX|X)\.\s+[A-ZÀ-ỸĐ\s]{2,35}$/.test(trimmed)) {
+        return txt;
+      }
+      // Check if line is excessively uppercase (> 60% uppercase letters)
+      const letters = trimmed.replace(/[^a-zA-Zà-ỹÀ-ỸĐđ]/g, '');
+      if (letters.length > 20) {
+        const upperCount = (letters.match(/[A-ZÀ-ỸĐ]/g) || []).length;
+        if (upperCount / letters.length > 0.65) {
+          // Convert to Sentence case
+          const lowered = trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+          return lowered
+            .replace(/^(i|ii|iii|iv|v|vi|vii|viii|ix|x)\.\s+/i, (m) => m.toUpperCase())
+            .replace(/^(hoạt động\s+\d+)/i, (m) => m.charAt(0).toUpperCase() + m.slice(1).toLowerCase())
+            .replace(/^(bước\s+\d+)/i, (m) => m.charAt(0).toUpperCase() + m.slice(1).toLowerCase())
+            .replace(/:\s*([a-zà-ỹđ])/g, (m, p1) => ": " + p1.toUpperCase())
+            .replace(/(\bnls\b|\bnlai\b|\bai\b|\bgv\b|\bhs\b)/gi, (m) => m.toUpperCase())
+            .replace(/(\[mã\s+[^\]]+\])/gi, (m) => m.toUpperCase());
+        }
+      }
+      return txt;
+    };
+
+    // Add all newly created lines with casing normalization
+    const subLines = line.split('\n');
+    for (const sl of subLines) {
+      result.push(fixLineCasing(sl));
+    }
+  }
+
+  return result.join('\n');
+};
+
 // Formatted Interactive Document Renderer
 const FormattedDocumentViewer: React.FC<{ content: string; title: string; duration: string }> = ({ content, title, duration }) => {
-  // Parse content into blocks: text paragraphs, headings, lists, tables
+  // Parse content into blocks: text paragraphs, headings, lists, tables with strict hierarchy
   const blocks = useMemo(() => {
-    const rawLines = content.split('\n');
-    const result: Array<{ type: 'heading1' | 'heading2' | 'activity' | 'subsection' | 'step' | 'table' | 'bullet' | 'text' | 'empty'; content?: string; rows?: string[][] }> = [];
+    const normalized = normalizeHeadingsHierarchy(content);
+    const rawLines = normalized.split('\n');
+    const result: Array<{ 
+      type: 'heading1' | 'heading2' | 'activity' | 'numericSection' | 'subsection' | 'step' | 'table' | 'bullet' | 'text' | 'empty'; 
+      content?: string; 
+      rows?: string[][] 
+    }> = [];
     
     let currentTable: string[][] = [];
 
@@ -165,15 +249,17 @@ const FormattedDocumentViewer: React.FC<{ content: string; title: string; durati
 
         if (/^KẾ HOẠCH BÀI DẠY/i.test(clean) || /^BÀI\s+\d+/i.test(clean)) {
           result.push({ type: 'heading1', content: clean });
-        } else if (/^[I|V|X]+\.\s+/i.test(clean)) {
+        } else if (/^(I|II|III|IV|V|VI|VII|VIII|IX|X)\.\s+/i.test(clean)) {
           result.push({ type: 'heading2', content: clean });
         } else if (/^HOẠT ĐỘNG\s+\d+/i.test(clean)) {
           result.push({ type: 'activity', content: clean });
-        } else if (/^[a-d]\.\s+/i.test(clean)) {
+        } else if (/^(\d+)\.\s+/i.test(clean)) {
+          result.push({ type: 'numericSection', content: clean });
+        } else if (/^[a-e][\)\.]\s+/i.test(clean)) {
           result.push({ type: 'subsection', content: clean });
         } else if (/^-\s*Bước\s+\d+/i.test(clean) || /^Bước\s+\d+/i.test(clean)) {
           result.push({ type: 'step', content: clean });
-        } else if (/^[•\-\*]\s+/.test(line) || /^\d+\.\s+/.test(clean)) {
+        } else if (/^[•\-\*\+]\s+/.test(line)) {
           result.push({ type: 'bullet', content: clean });
         } else {
           result.push({ type: 'text', content: clean });
@@ -187,7 +273,8 @@ const FormattedDocumentViewer: React.FC<{ content: string; title: string; durati
   // Helper to highlight competency codes & AI keywords with math & chemical formula support
   const renderHighlightedText = (rawText: string) => {
     const formatted = formatChemistryAndMath(rawText);
-    const cleanWithLineBreaks = formatted.replace(/<br\s*\/?>/gi, '\n');
+    let cleanWithLineBreaks = formatted.replace(/<br\s*\/?>/gi, '\n');
+    cleanWithLineBreaks = cleanWithLineBreaks.replace(/([.:;!?])\s+(-?\s*Bước\s+\d+:?)/gi, '$1\n$2');
     const lines = cleanWithLineBreaks.split('\n');
 
     return lines.map((line, lIdx) => {
@@ -243,7 +330,7 @@ const FormattedDocumentViewer: React.FC<{ content: string; title: string; durati
         if (block.type === 'heading1') {
           return (
             <div key={index} className="text-center my-6 border-b-2 border-slate-200 pb-4">
-              <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight">
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
                 {block.content}
               </h1>
               {duration && (
@@ -258,7 +345,7 @@ const FormattedDocumentViewer: React.FC<{ content: string; title: string; durati
         if (block.type === 'heading2') {
           return (
             <div key={index} className="mt-8 mb-3 pt-3 border-t border-slate-200">
-              <h2 className="text-lg font-black text-slate-900 uppercase flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-lg border-l-4 border-lime-600">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-lg border-l-4 border-lime-600">
                 {block.content}
               </h2>
             </div>
@@ -267,37 +354,47 @@ const FormattedDocumentViewer: React.FC<{ content: string; title: string; durati
 
         if (block.type === 'activity') {
           return (
-            <div key={index} className="mt-6 mb-3 p-3 bg-lime-50/90 border border-lime-400 rounded-xl shadow-xs">
-              <h3 className="text-base font-black text-lime-950 uppercase">
+            <div key={index} className="mt-6 mb-3 ml-4 p-3 bg-lime-50/90 border border-lime-400 rounded-xl shadow-xs">
+              <h3 className="text-base font-bold text-lime-950">
                 {block.content}
               </h3>
             </div>
           );
         }
 
+        if (block.type === 'numericSection') {
+          return (
+            <div key={index} className="mt-4 mb-1.5 ml-4">
+              <div className="font-bold text-base text-slate-900 flex items-baseline gap-1.5">
+                {renderHighlightedText(block.content || '')}
+              </div>
+            </div>
+          );
+        }
+
         if (block.type === 'subsection') {
           return (
-            <div key={index} className="mt-4 mb-1 pl-1">
-              <h4 className="font-bold text-slate-900 text-sm text-lime-900">
+            <div key={index} className="mt-2.5 mb-1 ml-8">
+              <div className="font-bold text-sm text-lime-950 flex items-baseline gap-1.5">
                 {renderHighlightedText(block.content || '')}
-              </h4>
+              </div>
             </div>
           );
         }
 
         if (block.type === 'step') {
           return (
-            <div key={index} className="pl-4 py-1.5 my-1 bg-slate-50/70 border-l-2 border-slate-400 rounded-r text-sm">
-              <span className="font-bold text-slate-800">
+            <div key={index} className="ml-12 my-1.5 pl-3 py-1.5 bg-slate-50/80 border-l-3 border-sky-500 rounded-r text-sm">
+              <div className="text-slate-800">
                 {renderHighlightedText(block.content || '')}
-              </span>
+              </div>
             </div>
           );
         }
 
         if (block.type === 'bullet') {
           return (
-            <div key={index} className="pl-6 text-sm text-slate-800 relative before:content-['•'] before:absolute before:left-2 before:text-lime-700 before:font-bold">
+            <div key={index} className="ml-12 my-1 text-sm text-slate-800 relative pl-4 before:content-['•'] before:absolute before:left-0 before:text-lime-700 before:font-bold">
               {renderHighlightedText(block.content || '')}
             </div>
           );
@@ -355,9 +452,9 @@ const FormattedDocumentViewer: React.FC<{ content: string; title: string; durati
         }
 
         return (
-          <p key={index} className="text-sm text-slate-800 leading-relaxed pl-2">
+          <div key={index} className="text-sm text-slate-800 leading-relaxed pl-2">
             {renderHighlightedText(block.content || '')}
-          </p>
+          </div>
         );
       })}
     </div>
@@ -395,7 +492,8 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
   const handleCopy = async () => {
     if (!data?.fullPlanContent) return;
     try {
-      await navigator.clipboard.writeText(data.fullPlanContent);
+      const normalizedContent = normalizeHeadingsHierarchy(data.fullPlanContent);
+      await navigator.clipboard.writeText(normalizedContent);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (e) {
@@ -415,102 +513,126 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
       const fileSaver = await import('file-saver');
       const saveAs = fileSaver.saveAs || fileSaver.default.saveAs;
       
-      const lines = data.fullPlanContent.split('\n');
+      const normalizedContent = normalizeHeadingsHierarchy(data.fullPlanContent);
+      const lines = normalizedContent.split('\n');
       
-      // Official Administrative Header Table (Border-less)
-      const headerTable = new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        rows: [
-          new TableRow({
-            cantSplit: true,
-            children: [
-              new TableCell({
-                width: { size: 52, type: WidthType.PERCENTAGE },
-                borders: {
-                  top: { style: BorderStyle.NONE },
-                  bottom: { style: BorderStyle.NONE },
-                  left: { style: BorderStyle.NONE },
-                  right: { style: BorderStyle.NONE },
-                },
-                children: [
-                  new Paragraph({
-                    children: [new TextRun({ text: "SỞ GD&ĐT ... - TRƯỜNG THPT CHU VĂN AN", font: "Times New Roman", size: 22, bold: true })],
-                    alignment: AlignmentType.CENTER
-                  }),
-                  new Paragraph({
-                    children: [new TextRun({ text: "TỔ CHUYÊN MÔN: HOÁ HỌC", font: "Times New Roman", size: 22, bold: true })],
-                    alignment: AlignmentType.CENTER
-                  }),
-                ]
-              }),
-              new TableCell({
-                width: { size: 48, type: WidthType.PERCENTAGE },
-                borders: {
-                  top: { style: BorderStyle.NONE },
-                  bottom: { style: BorderStyle.NONE },
-                  left: { style: BorderStyle.NONE },
-                  right: { style: BorderStyle.NONE },
-                },
-                children: [
-                  new Paragraph({
-                    children: [new TextRun({ text: "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM", font: "Times New Roman", size: 22, bold: true })],
-                    alignment: AlignmentType.CENTER
-                  }),
-                  new Paragraph({
-                    children: [new TextRun({ text: "Độc lập - Tự do - Hạnh phúc", font: "Times New Roman", size: 22, bold: true, underline: {} })],
-                    alignment: AlignmentType.CENTER
-                  }),
-                ]
-              })
-            ]
-          })
-        ]
-      });
+      // Check if administrative header already exists in content
+      const hasAdminHeaderInContent = /trường\s+thpt|sở\s+gd&đt|phòng\s+gd&đt|cộng\s+hòa\s+xã\s+hội/i.test(normalizedContent.slice(0, 400));
+      const hasTitleInContent = /kế\s+hoạch\s+bài\s+dạy|giáo\s+án/i.test(normalizedContent.slice(0, 400));
 
-      const docChildren: any[] = [
-        headerTable,
-        new Paragraph({ text: "", spacing: { after: 180 } }),
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: (data.lessonTitle || "KẾ HOẠCH BÀI DẠY").toUpperCase(),
-              bold: true,
-              size: 28,
-              font: "Times New Roman",
-              color: "0F172A"
+      const docChildren: any[] = [];
+
+      // Only add administrative header if not already present in the content
+      if (!hasAdminHeaderInContent) {
+        const headerTable = new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [
+            new TableRow({
+              cantSplit: true,
+              children: [
+                new TableCell({
+                  width: { size: 52, type: WidthType.PERCENTAGE },
+                  borders: {
+                    top: { style: BorderStyle.NONE },
+                    bottom: { style: BorderStyle.NONE },
+                    left: { style: BorderStyle.NONE },
+                    right: { style: BorderStyle.NONE },
+                  },
+                  children: [
+                    new Paragraph({
+                      children: [new TextRun({ text: "SỞ GD&ĐT ... - TRƯỜNG THPT ...", font: "Times New Roman", size: 22, bold: true })],
+                      alignment: AlignmentType.CENTER
+                    }),
+                    new Paragraph({
+                      children: [new TextRun({ text: "TỔ CHUYÊN MÔN: ...", font: "Times New Roman", size: 22, bold: true })],
+                      alignment: AlignmentType.CENTER
+                    }),
+                  ]
+                }),
+                new TableCell({
+                  width: { size: 48, type: WidthType.PERCENTAGE },
+                  borders: {
+                    top: { style: BorderStyle.NONE },
+                    bottom: { style: BorderStyle.NONE },
+                    left: { style: BorderStyle.NONE },
+                    right: { style: BorderStyle.NONE },
+                  },
+                  children: [
+                    new Paragraph({
+                      children: [new TextRun({ text: "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM", font: "Times New Roman", size: 22, bold: true })],
+                      alignment: AlignmentType.CENTER
+                    }),
+                    new Paragraph({
+                      children: [new TextRun({ text: "Độc lập - Tự do - Hạnh phúc", font: "Times New Roman", size: 22, bold: true, underline: {} })],
+                      alignment: AlignmentType.CENTER
+                    }),
+                  ]
+                })
+              ]
             })
-          ],
-          alignment: AlignmentType.CENTER,
-          spacing: { before: 100, after: 80 }
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: `Thời lượng thực hiện: ${data.lessonDuration || "Theo phân phối chương trình"}`,
-              bold: true,
-              italics: true,
-              size: 24,
-              font: "Times New Roman",
-              color: "334155"
-            })
-          ],
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 60 }
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: `(Bảo toàn nguyên bản bố cục gốc dạng cột / văn bản - Đã tích hợp Năng Lực Số & Năng Lực AI)`,
-              italics: true,
-              size: 20,
-              font: "Times New Roman",
-              color: "166534"
-            })
-          ],
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 280 }
-        })
-      ];
+          ]
+        });
+        docChildren.push(headerTable);
+        docChildren.push(new Paragraph({ text: "", spacing: { after: 120 } }));
+      }
+
+      if (!hasTitleInContent) {
+        docChildren.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "KẾ HOẠCH BÀI DẠY",
+                bold: true,
+                size: 30, // 15pt
+                font: "Times New Roman",
+                color: "0F172A"
+              })
+            ],
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 80, after: 40 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: data.lessonTitle || "Tên bài dạy",
+                bold: true,
+                size: 28, // 14pt
+                font: "Times New Roman",
+                color: "1E3A8A"
+              })
+            ],
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 40, after: 60 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `Thời lượng thực hiện: ${data.lessonDuration || "Theo phân phối chương trình"}`,
+                bold: true,
+                italics: true,
+                size: 24, // 12pt
+                font: "Times New Roman",
+                color: "334155"
+              })
+            ],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 60 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `(Kế hoạch bài dạy biên soạn theo Công văn 5512/BGDĐT - Tích hợp Khung Năng lực số & Năng lực AI)`,
+                italics: true,
+                size: 21, // 10.5pt
+                font: "Times New Roman",
+                color: "15803D"
+              })
+            ],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 260 }
+          })
+        );
+      }
 
       let currentTableRows: string[][] = [];
 
@@ -524,14 +646,19 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
         }
 
         // Clean HTML tags and apply chemistry/math formatting
-        const cleanContent = formatChemistryAndMath(
-          cellRaw
-            .replace(/<br\s*\/?>/gi, '\n')
-            .replace(/<\/div>/gi, '\n')
-            .replace(/<[^>]+>/g, '')
-            .replace(/&nbsp;/g, ' ')
-            .replace(/&amp;/g, '&')
-        );
+        let rawPrepared = cellRaw
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/<\/div>/gi, '\n')
+          .replace(/<[^>]+>/g, '')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&');
+
+        // Break before steps inside cells if merged on the same line
+        rawPrepared = rawPrepared
+          .replace(/([.:;!?])\s+(-?\s*Bước\s+\d+:?)/gi, '$1\n$2')
+          .replace(/([;.:])\s+([•\-\+]\s+[A-ZÀ-ỸĐa-z0-9])/g, '$1\n$2');
+
+        const cleanContent = formatChemistryAndMath(rawPrepared);
 
         const cellLines = cleanContent.split('\n').map(s => s.trim()).filter(Boolean);
         if (cellLines.length === 0) {
@@ -542,7 +669,7 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
         }
 
         return cellLines.map(rawLine => {
-          const runs: TextRun[] = [];
+          const runs: any[] = [];
 
           if (isHeader) {
             runs.push(new TextRun({
@@ -552,71 +679,248 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
               font: "Times New Roman",
               color: "0F172A"
             }));
-          } else {
-            // Check for step indicators like "Bước 1:", "Bước 2:"
-            let lineText = rawLine;
-            const stepMatch = lineText.match(/^(-?\s*Bước\s+\d+:?)(.*)$/i);
-            if (stepMatch) {
-              runs.push(new TextRun({
-                text: stepMatch[1] + " ",
-                bold: true,
-                size: 22,
-                font: "Times New Roman",
-                color: "1E3A8A"
-              }));
-              lineText = stepMatch[2];
-            }
-
-            // Parse bold markdown **...** and NLS/AI tags
-            const boldParts = lineText.split(/(\*\*[^*]+\*\*)/g);
-            boldParts.forEach(bPart => {
-              const isBold = bPart.startsWith('**') && bPart.endsWith('**');
-              const cleanPart = isBold ? bPart.slice(2, -2) : bPart;
-
-              const parts = cleanPart.split(/(\[Mã\s+[^\]]+\]|Mã\s+[\w\.\-]+|NLS|NL\s*AI|Google Sheets|Excel|Gemini|ChatGPT|Chatbot|Canva|Padlet)/gi);
-              parts.forEach(part => {
-                if (/^(\[Mã\s+[^\]]+\]|Mã\s+[\w\.\-]+)/i.test(part)) {
-                  runs.push(new TextRun({
-                    text: part,
-                    bold: true,
-                    size: 22,
-                    font: "Times New Roman",
-                    color: "166534" // Forest green
-                  }));
-                } else if (/^(NLS|NL\s*AI)/i.test(part)) {
-                  runs.push(new TextRun({
-                    text: part,
-                    bold: true,
-                    size: 22,
-                    font: "Times New Roman",
-                    color: "B45309" // Amber brown
-                  }));
-                } else if (/^(Google Sheets|Excel|Gemini|ChatGPT|Chatbot|Canva|Padlet)/i.test(part)) {
-                  runs.push(new TextRun({
-                    text: part,
-                    bold: true,
-                    size: 22,
-                    font: "Times New Roman",
-                    color: "0369A1" // Sky blue
-                  }));
-                } else if (part) {
-                  runs.push(new TextRun({
-                    text: part,
-                    bold: isBold,
-                    size: 22,
-                    font: "Times New Roman",
-                    color: "1E293B"
-                  }));
-                }
-              });
+            return new Paragraph({
+              children: runs,
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 40, after: 40, line: 260 }
             });
           }
 
+          // Check for step indicators like "Bước 1:", "Bước 2:"
+          let lineText = rawLine;
+          const stepMatch = lineText.match(/^(-?\s*Bước\s+\d+:?)(.*)$/i);
+          if (stepMatch) {
+            runs.push(new TextRun({
+              text: stepMatch[1].trim() + " ",
+              bold: true,
+              size: 22,
+              font: "Times New Roman",
+              color: "1E3A8A"
+            }));
+            lineText = stepMatch[2].trim();
+          }
+
+          // Parse bold markdown **...** and NLS/AI tags
+          const boldParts = lineText.split(/(\*\*[^*]+\*\*)/g);
+          boldParts.forEach(bPart => {
+            if (!bPart) return;
+            const isBold = bPart.startsWith('**') && bPart.endsWith('**');
+            const cleanPart = isBold ? bPart.slice(2, -2) : bPart;
+
+            const parts = cleanPart.split(/(\[Mã\s+[^\]]+\]|\[NLS:[^\]]+\]|\[NL\s*AI:[^\]]+\]|Mã\s+[\w\.\-]+|NLS|NL\s*AI|Google Sheets|Google Forms|Excel|Gemini|ChatGPT|Chatbot|Canva|Padlet|Quizizz|PhET|Mentimeter|Kahoot)/gi);
+            parts.forEach(part => {
+              if (!part) return;
+              if (/^(\[Mã\s+[^\]]+\]|\[NLS:[^\]]+\]|\[NL\s*AI:[^\]]+\]|Mã\s+[\w\.\-]+)/i.test(part)) {
+                runs.push(new TextRun({
+                  text: part,
+                  bold: true,
+                  size: 22,
+                  font: "Times New Roman",
+                  color: "15803D" // Forest green
+                }));
+              } else if (/^(NLS|NL\s*AI)/i.test(part)) {
+                runs.push(new TextRun({
+                  text: part,
+                  bold: true,
+                  size: 22,
+                  font: "Times New Roman",
+                  color: "B45309" // Amber brown
+                }));
+              } else if (/^(Google Sheets|Google Forms|Excel|Gemini|ChatGPT|Chatbot|Canva|Padlet|Quizizz|PhET|Mentimeter|Kahoot)/i.test(part)) {
+                runs.push(new TextRun({
+                  text: part,
+                  bold: true,
+                  size: 22,
+                  font: "Times New Roman",
+                  color: "0369A1" // Sky blue
+                }));
+              } else {
+                runs.push(new TextRun({
+                  text: part,
+                  bold: isBold,
+                  size: 22,
+                  font: "Times New Roman",
+                  color: "1E293B"
+                }));
+              }
+            });
+          });
+
           return new Paragraph({
             children: runs,
-            alignment: isCenterCol || isHeader ? AlignmentType.CENTER : AlignmentType.LEFT,
+            alignment: isCenterCol ? AlignmentType.CENTER : AlignmentType.JUSTIFIED,
             spacing: { before: 20, after: 20, line: 260 }
           });
+        });
+      };
+
+      // Function to parse a raw line outside tables into a beautifully formatted Word paragraph
+      const formatBodyParagraph = (rawLine: string): any => {
+        const cleanContent = formatChemistryAndMath(
+          rawLine
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<\/div>/gi, '\n')
+            .replace(/<[^>]+>/g, '')
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&amp;/g, '&')
+        ).trim();
+
+        if (!cleanContent) {
+          return null;
+        }
+
+        const cleanNoMd = cleanText(cleanContent);
+
+        // 1. Major Section: "I. MỤC TIÊU", "II. THIẾT BỊ DẠY HỌC", "III. TIẾN TRÌNH DẠY HỌC", "IV. HỒ SƠ DẠY HỌC"
+        const isMajorHeading = /^(I|II|III|IV|V|VI|VII|VIII|IX|X)\.\s+/i.test(cleanNoMd);
+        if (isMajorHeading) {
+          return new Paragraph({
+            children: [
+              new TextRun({
+                text: cleanNoMd,
+                bold: true,
+                size: 28, // 14pt standard
+                font: "Times New Roman",
+                color: "0F172A"
+              })
+            ],
+            alignment: AlignmentType.LEFT,
+            spacing: { before: 240, after: 100 }
+          });
+        }
+
+        // 2. Activity Title: "HOẠT ĐỘNG 1: ...", "Hoạt động 1. ..."
+        const isActivity = /^hoạt động\s+\d+[:.]/i.test(cleanNoMd);
+        if (isActivity) {
+          return new Paragraph({
+            children: [
+              new TextRun({
+                text: cleanNoMd,
+                bold: true,
+                size: 26, // 13pt
+                font: "Times New Roman",
+                color: "1E3A8A" // Deep navy blue
+              })
+            ],
+            alignment: AlignmentType.LEFT,
+            spacing: { before: 180, after: 80 }
+          });
+        }
+
+        // 3. Match Hierarchy Categories:
+        // Level 1: Numeric Section: "1. Về kiến thức", "2. Về năng lực", "1. Giáo viên:", "2. Học sinh:"
+        const numMatch = cleanContent.match(/^(\d+\.[^:\n]{0,45}:?)(.*)$/i);
+        const isNumeric = /^(\d+)\.\s+/i.test(cleanNoMd);
+
+        // Level 2: Alpha Subsection: "a) Mục tiêu:", "b) Nội dung:", "c) Sản phẩm:", "d) Tổ chức thực hiện:", "a) Năng lực chung:"
+        const alphaMatch = cleanContent.match(/^([a-e][\)\.][^:\n]{0,45}:?)(.*)$/i);
+        const isAlpha = /^([a-e][\)\.]\s+)/i.test(cleanNoMd);
+
+        // Level 3: Pedagogical Step: "Bước 1: Chuyển giao nhiệm vụ", "- Bước 1: ..."
+        const stepMatch = cleanContent.match(/^(-?\s*Bước\s+\d+:?)(.*)$/i);
+
+        let prefixRun: any = null;
+        let mainContent = cleanContent;
+        let indentConfig: any = { firstLine: 360 }; // Default paragraph indent 1.27cm
+        let paragraphSpacing = { before: 30, after: 30, line: 276 };
+
+        if (stepMatch) {
+          prefixRun = new TextRun({
+            text: stepMatch[1].trim() + " ",
+            bold: true,
+            size: 24, // 12pt
+            font: "Times New Roman",
+            color: "1E3A8A"
+          });
+          mainContent = stepMatch[2].trim();
+          indentConfig = { left: 1080 }; // Level 3 indent (~1.9cm)
+          paragraphSpacing = { before: 40, after: 30, line: 260 };
+        } else if (alphaMatch || isAlpha) {
+          if (alphaMatch && alphaMatch[1]) {
+            prefixRun = new TextRun({
+              text: alphaMatch[1].trim() + " ",
+              bold: true,
+              size: 25, // 12.5pt
+              font: "Times New Roman",
+              color: "0F172A"
+            });
+            mainContent = (alphaMatch[2] || "").trim();
+          }
+          indentConfig = { left: 720 }; // Level 2 indent (~1.27cm)
+          paragraphSpacing = { before: 70, after: 30, line: 260 };
+        } else if (numMatch || isNumeric) {
+          if (numMatch && numMatch[1]) {
+            prefixRun = new TextRun({
+              text: numMatch[1].trim() + " ",
+              bold: true,
+              size: 26, // 13pt
+              font: "Times New Roman",
+              color: "1E293B"
+            });
+            mainContent = (numMatch[2] || "").trim();
+          }
+          indentConfig = { left: 360 }; // Level 1 indent (~0.63cm)
+          paragraphSpacing = { before: 120, after: 40, line: 260 };
+        } else if (/^[•\-\*\+]\s+/.test(cleanContent)) {
+          indentConfig = { left: 1080, hanging: 240 }; // List hanging indent under subsections
+          paragraphSpacing = { before: 20, after: 20, line: 260 };
+        }
+
+        // 4. Build runs for line with markdown bold, NLS, AI tags, and digital tools
+        const runs: any[] = [];
+        if (prefixRun) runs.push(prefixRun);
+
+        const boldParts = mainContent.split(/(\*\*[^*]+\*\*)/g);
+        boldParts.forEach(bPart => {
+          if (!bPart) return;
+          const isBold = bPart.startsWith('**') && bPart.endsWith('**');
+          const cleanPart = isBold ? bPart.slice(2, -2) : bPart;
+
+          const subParts = cleanPart.split(/(\[Mã\s+[^\]]+\]|\[NLS:[^\]]+\]|\[NL\s*AI:[^\]]+\]|Mã\s+[\w\.\-]+|NLS|NL\s*AI|Google Sheets|Google Forms|Excel|Gemini|ChatGPT|Chatbot|Canva|Padlet|Quizizz|PhET|Mentimeter|Kahoot)/gi);
+          
+          subParts.forEach(sp => {
+            if (!sp) return;
+            if (/^(\[Mã\s+[^\]]+\]|\[NLS:[^\]]+\]|\[NL\s*AI:[^\]]+\]|Mã\s+[\w\.\-]+)/i.test(sp)) {
+              runs.push(new TextRun({
+                text: sp,
+                bold: true,
+                size: 24,
+                font: "Times New Roman",
+                color: "15803D" // Forest green
+              }));
+            } else if (/^(NLS|NL\s*AI)/i.test(sp)) {
+              runs.push(new TextRun({
+                text: sp,
+                bold: true,
+                size: 24,
+                font: "Times New Roman",
+                color: "B45309" // Amber brown
+              }));
+            } else if (/^(Google Sheets|Google Forms|Excel|Gemini|ChatGPT|Chatbot|Canva|Padlet|Quizizz|PhET|Mentimeter|Kahoot)/i.test(sp)) {
+              runs.push(new TextRun({
+                text: sp,
+                bold: true,
+                size: 24,
+                font: "Times New Roman",
+                color: "0369A1" // Sky blue
+              }));
+            } else {
+              runs.push(new TextRun({
+                text: sp,
+                bold: isBold,
+                size: 24, // 12pt standard
+                font: "Times New Roman",
+                color: "1E293B"
+              }));
+            }
+          });
+        });
+
+        return new Paragraph({
+          children: runs,
+          alignment: AlignmentType.JUSTIFIED, // Chuẩn văn bản hành chính Việt Nam
+          spacing: paragraphSpacing,
+          indent: indentConfig
         });
       };
 
@@ -650,10 +954,10 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
                       left: { style: BorderStyle.SINGLE, size: 1, color: "64748B" },
                       right: { style: BorderStyle.SINGLE, size: 1, color: "64748B" },
                     },
-                    verticalAlign: VerticalAlign.CENTER,
+                    verticalAlign: VerticalAlign.TOP, // Vertical align top for pedagogical table alignment
                     shading: isHeader 
-                      ? { fill: "F1F5F9" } 
-                      : (rowIndex % 2 === 1 ? { fill: "F8FAFC" } : undefined)
+                      ? { fill: "E2E8F0" } 
+                      : (rowIndex % 2 === 1 ? { fill: "F8FAFC" } : { fill: "FFFFFF" })
                   });
                 })
               });
@@ -679,29 +983,10 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
         } else {
           if (currentTableRows.length > 0) processTable();
           if (line.length > 0) {
-            const cleanLine = cleanText(line);
-            const isActivityTitle = /^HOẠT ĐỘNG/i.test(cleanLine);
-            const isMajorHeading = /^[I|V|X]+\.\s+/i.test(cleanLine);
-            const isSubSection = /^[a-d]\.\s+/i.test(cleanLine);
-            const isStep = /^-\s*Bước\s+\d+/i.test(cleanLine) || /^Bước\s+\d+/i.test(cleanLine);
-            const isListItem = /^[•\-\*]\s+/.test(line) || /^\d+\.\s+/.test(cleanLine);
-            
-            docChildren.push(new Paragraph({ 
-              children: [new TextRun({ 
-                text: cleanLine, 
-                bold: isActivityTitle || isMajorHeading || isSubSection || isStep, 
-                size: isMajorHeading ? 26 : isActivityTitle ? 24 : isSubSection ? 23 : 23,
-                font: "Times New Roman",
-                color: isMajorHeading ? "0F172A" : isActivityTitle ? "1E3A8A" : "1E293B"
-              })],
-              alignment: AlignmentType.LEFT,
-              spacing: { 
-                before: isMajorHeading ? 240 : isActivityTitle ? 180 : isSubSection ? 100 : 40, 
-                after: 40,
-                line: 276
-              },
-              indent: isStep ? { left: 240 } : isListItem ? { left: 360 } : undefined
-            }));
+            const bodyPara = formatBodyParagraph(line);
+            if (bodyPara) {
+              docChildren.push(bodyPara);
+            }
           }
         }
       }
@@ -731,9 +1016,9 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
                   alignment: AlignmentType.RIGHT,
                   children: [
                     new TextRun({ text: "Trang ", font: "Times New Roman", size: 20, color: "64748B" }),
-                    PageNumber.CURRENT,
+                    new TextRun({ children: [PageNumber.CURRENT], font: "Times New Roman", size: 20, color: "64748B" }),
                     new TextRun({ text: " / ", font: "Times New Roman", size: 20, color: "64748B" }),
-                    PageNumber.TOTAL_PAGES
+                    new TextRun({ children: [PageNumber.TOTAL_PAGES], font: "Times New Roman", size: 20, color: "64748B" })
                   ]
                 })
               ]
@@ -823,6 +1108,9 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
             <ShieldCheck className="w-5 h-5 text-lime-700" />
             <span>KHBD ĐÃ TÍCH HỢP NLS & AI</span>
           </h2>
+          <span className="hidden xl:inline-flex items-center gap-1 px-2.5 py-1 bg-lime-200/80 text-lime-950 font-bold text-[10px] rounded-lg border border-lime-600/40">
+            📄 Chuẩn NĐ 30 & CV 5512 (Times New Roman, Căn đều 2 bên)
+          </span>
           {/* View switcher tabs */}
           <div className="flex bg-white/80 p-1 rounded-xl border border-[#1a230f] shadow-xs">
             <button
