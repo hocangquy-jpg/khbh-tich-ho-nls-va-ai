@@ -128,17 +128,56 @@ ${input.text ? `\nNội dung văn bản/ghi chú kèm theo: ${input.text}` : ''}
 
   contentParts.push({ text: promptDirective });
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3.8-flash",
-    contents: [{ role: "user", parts: contentParts }],
-    config: {
-      systemInstruction: systemInstruction,
-      responseMimeType: "application/json",
-      responseSchema: responseSchema,
-      maxOutputTokens: 16384,
-      temperature: 0.1,
-    },
-  });
+  const candidateModels = ["gemini-3.8-flash", "gemini-flash-latest"];
+  let lastError: any = null;
+  let response: any = null;
+
+  for (const modelName of candidateModels) {
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        response = await ai.models.generateContent({
+          model: modelName,
+          contents: [{ role: "user", parts: contentParts }],
+          config: {
+            systemInstruction: systemInstruction,
+            responseMimeType: "application/json",
+            responseSchema: responseSchema,
+            maxOutputTokens: 16384,
+            temperature: 0.1,
+          },
+        });
+        if (response) break;
+      } catch (err: any) {
+        lastError = err;
+        const errMsg = err?.message || JSON.stringify(err || '');
+        const isOverloaded = 
+          errMsg.includes("503") || 
+          errMsg.includes("high demand") || 
+          errMsg.includes("UNAVAILABLE") || 
+          errMsg.includes("429") ||
+          errMsg.includes("RESOURCE_EXHAUSTED");
+
+        if (isOverloaded && attempt < 2) {
+          console.warn(`Mô hình ${modelName} đang quá tải tạm thời (503/429). Đang chờ 2.5s để thử lại lần ${attempt + 1}...`);
+          await new Promise(resolve => setTimeout(resolve, 2500));
+        } else {
+          break;
+        }
+      }
+    }
+    if (response) break;
+  }
+
+  if (!response) {
+    const rawMsg = lastError?.message || JSON.stringify(lastError || '');
+    if (rawMsg.includes("503") || rawMsg.includes("high demand") || rawMsg.includes("UNAVAILABLE")) {
+      throw new Error("Máy chủ Google AI hiện đang quá tải tạm thời do lượng truy cập cao (Lỗi 503: High demand). Tình trạng này thường chỉ kéo dài 1-2 phút. Thầy/cô vui lòng bấm 'Tích hợp ngay' lại sau ít giây ạ.");
+    }
+    if (rawMsg.includes("429") || rawMsg.includes("RESOURCE_EXHAUSTED")) {
+      throw new Error("Khóa API Google đã vượt hạn ngạch gửi yêu cầu tạm thời (Lỗi 429). Thầy/cô vui lòng đợi 1 phút và thử lại.");
+    }
+    throw lastError || new Error("Không thể kết nối đến máy chủ Google AI. Vui lòng kiểm tra lại cấu hình API Key.");
+  }
 
   const responseText = response.text || response.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!responseText) {
