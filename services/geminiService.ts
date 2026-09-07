@@ -128,13 +128,42 @@ ${input.text ? `\nNội dung văn bản/ghi chú kèm theo: ${input.text}` : ''}
 
   contentParts.push({ text: promptDirective });
 
-  const candidateModels = ["gemini-3.8-flash", "gemini-flash-latest"];
+  // Priority list of models: gemini-3.1-flash-lite has highest availability and fastest latency
+  const candidateModels = ["gemini-3.1-flash-lite", "gemini-flash-latest", "gemini-3.8-flash"];
   let lastError: any = null;
   let response: any = null;
 
   for (const modelName of candidateModels) {
-    for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      response = await ai.models.generateContent({
+        model: modelName,
+        contents: [{ role: "user", parts: contentParts }],
+        config: {
+          systemInstruction: systemInstruction,
+          responseMimeType: "application/json",
+          responseSchema: responseSchema,
+          maxOutputTokens: 16384,
+          temperature: 0.1,
+        },
+      });
+      if (response) {
+        console.log(`Successfully generated lesson plan using model: ${modelName}`);
+        break;
+      }
+    } catch (err: any) {
+      lastError = err;
+      const errMsg = err?.message || JSON.stringify(err || '');
+      console.warn(`Mô hình ${modelName} gặp sự cố (${errMsg.slice(0, 100)}). Đang tự động chuyển sang mô hình tiếp theo...`);
+      // If overloaded, immediately try the next model in the candidate list
+      continue;
+    }
+  }
+
+  // If all primary models failed on first pass, do a short retry with the top models
+  if (!response) {
+    for (const modelName of ["gemini-3.1-flash-lite", "gemini-flash-latest"]) {
       try {
+        await new Promise(resolve => setTimeout(resolve, 2000));
         response = await ai.models.generateContent({
           model: modelName,
           contents: [{ role: "user", parts: contentParts }],
@@ -147,25 +176,10 @@ ${input.text ? `\nNội dung văn bản/ghi chú kèm theo: ${input.text}` : ''}
           },
         });
         if (response) break;
-      } catch (err: any) {
-        lastError = err;
-        const errMsg = err?.message || JSON.stringify(err || '');
-        const isOverloaded = 
-          errMsg.includes("503") || 
-          errMsg.includes("high demand") || 
-          errMsg.includes("UNAVAILABLE") || 
-          errMsg.includes("429") ||
-          errMsg.includes("RESOURCE_EXHAUSTED");
-
-        if (isOverloaded && attempt < 2) {
-          console.warn(`Mô hình ${modelName} đang quá tải tạm thời (503/429). Đang chờ 2.5s để thử lại lần ${attempt + 1}...`);
-          await new Promise(resolve => setTimeout(resolve, 2500));
-        } else {
-          break;
-        }
+      } catch (retryErr) {
+        lastError = retryErr;
       }
     }
-    if (response) break;
   }
 
   if (!response) {
