@@ -47,24 +47,25 @@ export const generateEnhancedLessonPlan = async (
          => Tích hợp NLS và NLAI trực tiếp vào văn bản các bước (nêu rõ GV giao nhiệm vụ công nghệ số/AI gì, HS dùng phần mềm/thiết bị/công cụ AI nào, thao tác ra sao, sản phẩm số thu được là gì, kèm mã NLS/NLAI tương ứng).
 
     2. QUY TẮC DẠNG CỘT / DẠNG BẢNG (Table / Columns) - BẢO ĐẢM TOÀN VẸN CỘT:
-       - Nếu phần nào trong bản gốc ở dạng bảng / cột (ví dụ: bảng ma trận tổng quan phân bổ thời gian gồm các cột "STT | Hoạt động dạy học | Thời lượng | Phương pháp / Kĩ thuật chủ đạo | Sản phẩm học tập dự kiến | Mã hoá NLS / NL AI tích hợp", hoặc bảng 2 cột "Hoạt động của GV - HS | Dự kiến sản phẩm", hoặc bảng 3, 4, 5, 6 cột...):
-         => Bắt buộc giữ nguyên đúng bảng đó với đúng số cột và tiêu đề cột của bản gốc!
-         => Tuyệt đối không thêm bớt cột, không biến bảng 2 cột thành bảng 5 cột, không làm xáo trộn bố cục bảng của file gốc!
+       - Nếu phần nào trong bản gốc ở dạng bảng / cột (ví dụ: bảng 2 cột "Hoạt động của GV - HS | Dự kiến sản phẩm", hoặc bảng ma trận thời lượng, hoặc bảng 3, 4, 5, 6 cột...):
+         => BẮT BUỘC GIỮ NGUYÊN ĐÚNG BẢNG ĐÓ VỚI ĐÚNG SỐ CỘT VÀ TIÊU ĐỀ CỘT CỦA BẢN GỐC!
+         => Tuyệt đối không xóa bảng, không chuyển bảng thành dạng văn bản thông thường, không biến bảng 2 cột thành 5 cột!
+         => PHẦN TÍCH HỢP NLS VÀ NLAI BẮT BUỘC ĐƯỢC LỒNG GHÉP TRỰC TIẾP VÀO TRONG HOẠT ĐỘNG CỦA GV VÀ HS TRONG CHÍNH Ô BẢNG ĐÓ (nếu hoạt động đó được yêu cầu tích hợp), KHÔNG ĐƯỢC TÁCH THÀNH MỤC RIÊNG NẰM NGOÀI!
+         => TRÌNH BÀY TRONG Ô BẢNG BẮT BUỘC CÓ ĐỀ MỤC RÕ RÀNG, CÓ XUỐNG DÒNG (DÙNG THẺ <br>), TUYỆT ĐỐI KHÔNG VIẾT LIỀN TÙ TÌ:
+            Ví dụ cấu trúc chuẩn mực trong ô "Hoạt động của GV - HS":
+            **Bước 1: Chuyển giao nhiệm vụ**<br>+ GV: Giao nhiệm vụ cho học sinh... (hướng dẫn công cụ số/AI, link/mã QR nếu có tích hợp)<br>+ HS: Tiếp nhận nhiệm vụ, chuẩn bị thiết bị...<br><br>**Bước 2: Thực hiện nhiệm vụ**<br>+ HS: Thao tác sử dụng [công cụ/phần mềm/AI] để làm việc... [Mã 1.1.NC1b] [NL AI: 11.C3.2]<br>+ GV: Quan sát, hỗ trợ kỹ thuật số, hướng dẫn đánh giá độ tin cậy...<br><br>**Bước 3: Báo cáo, thảo luận**<br>+ HS: Báo cáo, chia sẻ sản phẩm số...<br>+ HS khác: Lắng nghe, nhận xét, phản biện...<br><br>**Bước 4: Kết luận, nhận định**<br>+ GV: Nhận xét, chốt kiến thức, chuẩn hóa nội dung...
+            
+            Ví dụ cấu trúc trong ô "Dự kiến sản phẩm":
+            **1. Kiến thức cốt lõi:**<br>- ...<br><br>**2. Sản phẩm học tập số:**<br>- Sản phẩm thu được (bảng tính số hóa, sơ đồ tư duy, kết quả phản biện AI...).
          => Cú pháp bảng Markdown bắt buộc chuẩn mực:
             | Tiêu đề cột 1 | Tiêu đề cột 2 | Tiêu đề cột 3 | ... |
             | :--- | :--- | :--- | ... |
             | Dòng dữ liệu | Dòng dữ liệu | Dòng dữ liệu | ... |
          => Nguyên tắc chống vỡ bảng:
-            + Nếu bảng có N cột, thì mọi hàng trong bảng phải có chính xác N cột.
+            + Mọi hàng trong bảng phải có đúng số lượng cột.
             + Tuyệt đối không dùng ký tự "|" bên trong nội dung ô.
-            + Nếu trong ô có bảng con hoặc số liệu (ví dụ: bảng đồng vị, bảng số liệu thực nghiệm, phương trình hóa học):
-              Bắt buộc trình bày dạng danh sách ngắt dòng bằng thẻ <br>:
-              Ví dụ:
-              [Bảng đồng vị của Sulfur:]<br>• Đồng vị: 32S (95.02%), 33S (0.75%), 34S (4.21%), 36S (0.02%)
-            + Khi trong một ô có nhiều bước, bắt buộc dùng thẻ <br> giữa các dòng để ngắt dòng sạch sẽ:
-              Ví dụ: "Bước 1: ...<br>Bước 2: ...<br>Bước 3: ...<br>Bước 4: ...".
+            + Dùng thẻ <br> để ngắt dòng sạch sẽ giữa các bước, giữa hoạt động của GV và HS.
             + Ghi rõ mã năng lực số và AI trong ngoặc vuông (ví dụ: [Mã 1.1.NC1b], [Mã 11.C3.2]).
-         => Chèn/tích hợp nội dung NLS/NLAI vào đúng các cột tương ứng của bảng gốc.
 
     3. QUY TẮC PHỐI HỢP NẾU BẢN GỐC KẾT HỢP CẢ HAI:
        - Nếu bản gốc có bảng ở mục III (Tiến trình tổng quan) và dạng văn bản ở mục IV (Chi tiết các hoạt động Bước 1, 2, 3, 4), thì bản đầu ra phải giữ nguyên y hệt: mục III là bảng với đúng các cột đó, mục IV là văn bản chi tiết với các bước đó!
@@ -162,19 +163,27 @@ export const generateEnhancedLessonPlan = async (
     });
   }
 
-  const promptDirective = `YÊU CẦU ĐẶC BIỆT BẮT BUỘC: 
+  const promptDirective = `YÊU CẦU ĐẶC BIỆT QUAN TRỌNG: 
 Hãy đọc kỹ tệp đính kèm / nội dung Kế hoạch bài dạy (KHBD). Tiến hành tích hợp Năng lực số (NLS) và Năng lực AI (NL AI) theo đúng khung đã chọn.
-SAU ĐÓ BẠN PHẢI GIỮ NGUYÊN HÌNH DẠNG, BỐ CỤC CỦA FILE GỐC Ở DẠNG CỘT, DẠNG VĂN BẢN,... GIỐNG NHƯ FILE GỐC, TUYỆT ĐỐI KHÔNG ĐƯỢC THAY ĐỔI LẠI!
-- Nếu file gốc dùng dạng văn bản (a, b, c, d với các Bước 1, 2, 3, 4 gạch đầu dòng): GIỮ NGUYÊN DẠNG VĂN BẢN, tuyệt đối không chuyển thành bảng!
-- Nếu file gốc có dạng bảng (ví dụ bảng tiến trình ở mục III hoặc bảng 2 cột GV-HS): GIỮ NGUYÊN BẢNG VỚI ĐÚNG SỐ CỘT VÀ TIÊU ĐỀ CỘT CỦA BẢN GỐC!
-- Bảo toàn 100% nội dung gốc, không tóm tắt, xuất toàn văn hoàn chỉnh.
+BẠN PHẢI TUÂN THỦ NGHIÊM TÚC VÀ CHUYÊN NGHIỆP CÁC NGUYÊN TẮC SAU:
+1. GIỮ LẠI DẠNG CỘT / DẠNG BẢNG CỦA KHBH GỐC:
+   - Nếu bản gốc có bảng (ví dụ bảng 2 cột "Hoạt động của GV - HS | Dự kiến sản phẩm", bảng ma trận thời lượng hoặc bảng nhiều cột): BẮT BUỘC GIỮ NGUYÊN ĐÚNG BẢNG ĐÓ VỚI ĐÚNG SỐ CỘT VÀ TIÊU ĐỀ CỘT CỦA BẢN GỐC!
+   - Tuyệt đối không xóa bảng, không chuyển bảng thành dạng văn bản thông thường, không biến bảng 2 cột thành 5 cột!
+2. PHẦN TÍCH HỢP NLS VÀ NLAI BẮT BUỘC ĐƯỢC LỒNG GHÉP TRỰC TIẾP TRONG HOẠT ĐỘNG CỦA GV VÀ HS (nếu hoạt động đó được yêu cầu tích hợp).
+   - Nêu rõ GV giao nhiệm vụ/công cụ số gì, HS thao tác/tra cứu/tương tác AI ra sao, kèm mã [Mã ...] tương ứng.
+   - Tuyệt đối không tách thành một mục riêng đứng ngoài tiến trình hoạt động.
+3. TRÌNH BÀY CÓ ĐỀ MỤC, CÓ XUỐNG DÒNG, KHÔNG ĐƯỢC VIẾT LIỀN:
+   - Trong các ô bảng: Bắt buộc dùng thẻ <br> để xuống dòng rõ ràng giữa các bước (**Bước 1: Chuyển giao nhiệm vụ**, **Bước 2: Thực hiện nhiệm vụ**, **Bước 3: Báo cáo, thảo luận**, **Bước 4: Kết luận, nhận định**), giữa hoạt động của GV (+ GV:) và HS (+ HS:). Tuyệt đối không viết dính liền nhau.
+4. NẾU BẢN GỐC LÀ DẠNG VĂN BẢN (không dùng bảng): Giữ nguyên 100% dạng văn bản đó với đầy đủ các mục a) Mục tiêu, b) Nội dung, c) Sản phẩm, d) Tổ chức thực hiện (Bước 1, 2, 3, 4).
+5. QUY CHUẨN CHỮ VIẾT: Viết hoa chuẩn tiếng Việt (Sentence case), tuyệt đối không dùng ALL-CAPS viết hoa toàn bộ câu/đoạn.
+6. BẢO TOÀN 100% NỘI DUNG GỐC: Không tóm tắt, xuất toàn văn hoàn chỉnh từ đầu đến cuối.
 ${input.sessionDetails ? `Chi tiết phân bổ tiết học: ${input.sessionDetails}.` : ''}
 ${input.text ? `\nNội dung văn bản/ghi chú kèm theo: ${input.text}` : ''}`;
 
   contentParts.push({ text: promptDirective });
 
-  // Priority list of models: gemini-3.1-flash-lite has highest availability and fastest latency
-  const candidateModels = ["gemini-3.1-flash-lite", "gemini-flash-latest", "gemini-3.8-flash"];
+  // Priority list of models: gemini-3.1-flash-lite and gemini-flash-latest have highest reliability and no quota locks
+  const candidateModels = ["gemini-3.1-flash-lite", "gemini-flash-latest"];
   let lastError: any = null;
   let response: any = null;
 

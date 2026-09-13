@@ -99,7 +99,8 @@ export const sanitizeAndNormalizeTable = (rawRows: string[][]): string[][] => {
 const calculateColumnWidths = (headerCells: string[]): number[] => {
   const numCols = headerCells.length;
   if (numCols <= 1) return [100];
-  if (numCols === 2) return [50, 50];
+  // Với bảng 2 cột KHBH chuẩn Công văn 5512: Cột Hoạt động của GV & HS luôn nhiều nội dung hơn, chiếm 58%, cột Sản phẩm chiếm 42%
+  if (numCols === 2) return [58, 42];
 
   const weights = headerCells.map(cell => {
     const text = cleanText(cell).toLowerCase().trim();
@@ -107,10 +108,10 @@ const calculateColumnWidths = (headerCells: string[]): number[] => {
     if (/(thời lượng|thời gian|định lượng|số phút|thời gian \(phút\))/i.test(text)) return 10;
     if (/(mã hoá|mã số|nls|nl ai|tích hợp nls|nla|năng lực số|mã hoá nls \/ nl ai tích hợp)/i.test(text)) return 18;
     if (/(phương pháp|kĩ thuật|hình thức|kĩ thuật dạy học)/i.test(text)) return 18;
-    if (/(sản phẩm|sản phẩm học tập|sản phẩm dự kiến)/i.test(text)) return 22;
+    if (/(sản phẩm|sản phẩm học tập|sản phẩm dự kiến)/i.test(text)) return 24;
     if (/(hoạt động của gv|giáo viên|gv)/i.test(text)) return 28;
     if (/(hoạt động của hs|học sinh|hs)/i.test(text)) return 28;
-    if (/(hoạt động dạy học|hoạt động|nhiệm vụ)/i.test(text)) return 22;
+    if (/(hoạt động dạy học|hoạt động|nhiệm vụ)/i.test(text)) return 24;
     if (/(nội dung)/i.test(text)) return 18;
     if (/(mục tiêu)/i.test(text)) return 18;
     return 20;
@@ -162,30 +163,42 @@ export const normalizeHeadingsHierarchy = (text: string): string => {
     line = line.replace(/([.:;!?])\s+(-?\s*Bước\s+\d+:?)/gi, "$1\n$2");
     line = line.replace(/([a-e][\)\.][^\n]+?:)\s+(-?\s*Bước\s+\d+:?)/gi, "$1\n$2");
 
-    // 6. Break before bullets (+ or - or •) when following punctuation
+    // 6. Break before GV / HS activity labels if merged on same line
+    line = line.replace(/([.:;!?])\s+([•\-\+]?\s*(?:GV|HS|Giáo viên|Học sinh)\s*[:\-])/gi, "$1\n$2");
+
+    // 7. Break before bullets (+ or - or •) when following punctuation
     line = line.replace(/([;.:])\s+([•\-\+]\s+[A-ZÀ-ỸĐa-z0-9])/g, "$1\n$2");
 
-    // Helper: Normalize excessive ALL-CAPS text (giữ nguyên câu hoa đầu chuẩn tiếng Việt, không hét ALL-CAPS)
+    // Helper: Normalize excessive ALL-CAPS text (giữ nguyên câu hoa đầu chuẩn tiếng Việt, không hét ALL-CAPS, không phá hỏng công thức hóa học)
     const fixLineCasing = (txt: string): string => {
       const trimmed = txt.trim();
       if (!trimmed || trimmed.startsWith('|')) return txt;
-      // Do not touch short standard headings like "I. MỤC TIÊU" (less than 35 chars)
-      if (/^(?:I|II|III|IV|V|VI|VII|VIII|IX|X)\.\s+[A-ZÀ-ỸĐ\s]{2,35}$/.test(trimmed)) {
+
+      // Do NOT touch official administrative titles and major section headings
+      if (/^(?:I|II|III|IV|V|VI|VII|VIII|IX|X)\.\s+/i.test(trimmed)) return txt;
+      if (/^KẾ HOẠCH BÀI DẠY|^GIÁO ÁN|^BÀI\s+\d+|^CỘNG HÒA XÃ HỘI|^ĐỘC LẬP - TỰ DO|^TRƯỜNG THPT|^SỞ GD&ĐT|^PHÒNG GD&ĐT|^TỔ CHUYÊN MÔN/i.test(trimmed)) {
         return txt;
       }
-      // Check if line is excessively uppercase (> 60% uppercase letters)
+
+      // Check if line contains chemical formulas or math expressions (e.g. H2SO4, Al3+, ->, pH)
+      const hasChemistryOrMath = /[A-Z][a-z]?\d+|\^|_|→|⇌|≤|≥|≠|\bpH\b|\bSO[23]\b|\bCO2\b|\bH2O\b/i.test(trimmed);
+      if (hasChemistryOrMath) {
+        return txt; // Never lower-case chemistry
+      }
+
+      // Check if line is excessively uppercase (> 70% uppercase letters and long)
       const letters = trimmed.replace(/[^a-zA-Zà-ỹÀ-ỸĐđ]/g, '');
-      if (letters.length > 20) {
+      if (letters.length > 25) {
         const upperCount = (letters.match(/[A-ZÀ-ỸĐ]/g) || []).length;
-        if (upperCount / letters.length > 0.65) {
+        if (upperCount / letters.length > 0.70) {
           // Convert to Sentence case
           const lowered = trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
           return lowered
             .replace(/^(i|ii|iii|iv|v|vi|vii|viii|ix|x)\.\s+/i, (m) => m.toUpperCase())
             .replace(/^(hoạt động\s+\d+)/i, (m) => m.charAt(0).toUpperCase() + m.slice(1).toLowerCase())
             .replace(/^(bước\s+\d+)/i, (m) => m.charAt(0).toUpperCase() + m.slice(1).toLowerCase())
-            .replace(/:\s*([a-zà-ỹđ])/g, (m, p1) => ": " + p1.toUpperCase())
-            .replace(/(\bnls\b|\bnlai\b|\bai\b|\bgv\b|\bhs\b)/gi, (m) => m.toUpperCase())
+            .replace(/:\s*([a-zà-ỹđ])/g, (_, p1) => ": " + p1.toUpperCase())
+            .replace(/(\bnls\b|\bnlai\b|\bai\b|\bgv\b|\bhs\b|\bgd&đt\b|\bbgdđt\b|\bthpt\b|\bthcs\b|\bstem\b|\bkhtn\b)/gi, (m) => m.toUpperCase())
             .replace(/(\[mã\s+[^\]]+\])/gi, (m) => m.toUpperCase());
         }
       }
@@ -273,40 +286,64 @@ const FormattedDocumentViewer: React.FC<{ content: string; title: string; durati
   // Helper to highlight competency codes & AI keywords with math & chemical formula support
   const renderHighlightedText = (rawText: string) => {
     const formatted = formatChemistryAndMath(rawText);
-    let cleanWithLineBreaks = formatted.replace(/<br\s*\/?>/gi, '\n');
-    cleanWithLineBreaks = cleanWithLineBreaks.replace(/([.:;!?])\s+(-?\s*Bước\s+\d+:?)/gi, '$1\n$2');
-    const lines = cleanWithLineBreaks.split('\n');
+    let cleanWithLineBreaks = formatted
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/div>/gi, '\n')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&');
+    
+    // Intelligently break before steps, GV/HS, and subsections inside cells if merged on one line
+    cleanWithLineBreaks = cleanWithLineBreaks
+      .replace(/([^\n])\s+(-?\s*Bước\s+\d+:?)/gi, '$1\n$2')
+      .replace(/([^\n])\s+([•\-\+]?\s*(?:GV|HS|Giáo viên|Học sinh)\s*[:\-])/gi, '$1\n$2')
+      .replace(/([.:;!?])\s+(\d+\.\s+[A-ZÀ-ỸĐ])/g, '$1\n$2')
+      .replace(/([.:;!?])\s+([a-e][\)\.]\s+[A-ZÀ-ỸĐ])/g, '$1\n$2');
+
+    const lines = cleanWithLineBreaks.split('\n').map(s => s.trim()).filter(Boolean);
 
     return lines.map((line, lIdx) => {
+      // Check if line is a Step heading: "Bước 1: ...", "Bước 2: ..."
+      const isStep = /^(-?\s*Bước\s+\d+:?)/i.test(line);
+      const isGvHs = /^[•\-\+]?\s*(?:GV|HS|Giáo viên|Học sinh)\s*[:\-]/i.test(line);
+
       // Parse markdown bold **text** within each line
       const boldSegments = line.split(/(\*\*[^*]+\*\*)/g);
 
       return (
-        <div key={lIdx} className={lIdx > 0 ? "mt-1.5" : ""}>
+        <div 
+          key={lIdx} 
+          className={`leading-relaxed ${
+            isStep 
+              ? 'font-bold text-sky-900 bg-sky-50/75 px-2.5 py-1.5 rounded-lg border-l-3 border-sky-600 mt-3 mb-1.5 shadow-2xs' 
+              : isGvHs 
+                ? 'pl-3 my-1 text-slate-900 font-medium' 
+                : lIdx > 0 ? 'mt-1' : ''
+          }`}
+        >
           {boldSegments.map((segment, bIdx) => {
             const isBold = segment.startsWith('**') && segment.endsWith('**');
             const cleanSegment = isBold ? segment.slice(2, -2) : segment;
 
-            const parts = cleanSegment.split(/(\[Mã\s+[^\]]+\]|Mã\s+[\w\.\-]+|NLS|NL\s*AI|Google Sheets|Excel|Gemini|ChatGPT|Chatbot|Canva|Padlet|AI)/gi);
+            const parts = cleanSegment.split(/(\[Mã\s+[^\]]+\]|\[NLS:[^\]]+\]|\[NL\s*AI:[^\]]+\]|Mã\s+[\w\.\-]+|NLS|NL\s*AI|Google Sheets|Google Forms|Excel|Gemini|ChatGPT|Chatbot|Canva|Padlet|Quizizz|PhET|Mentimeter|Kahoot|AI)/gi);
 
             const renderedParts = parts.map((part, pIdx) => {
-              if (/^(\[Mã\s+[^\]]+\]|Mã\s+[\w\.\-]+)/i.test(part)) {
+              if (/^(\[Mã\s+[^\]]+\]|\[NLS:[^\]]+\]|\[NL\s*AI:[^\]]+\]|Mã\s+[\w\.\-]+)/i.test(part)) {
                 return (
-                  <span key={pIdx} className="inline-block px-2 py-0.5 mx-0.5 bg-lime-100 text-lime-900 border border-lime-500 rounded font-black text-xs shadow-xs">
+                  <span key={pIdx} className="inline-block px-1.5 py-0.5 mx-0.5 bg-emerald-100 text-emerald-900 border border-emerald-400 rounded-md font-bold text-xs shadow-2xs">
                     {part}
                   </span>
                 );
               }
               if (/^(NLS|NL\s*AI)/i.test(part)) {
                 return (
-                  <span key={pIdx} className="inline-block px-1.5 py-0.5 mx-0.5 bg-amber-100 text-amber-900 border border-amber-400 rounded font-black text-xs shadow-xs">
+                  <span key={pIdx} className="inline-block px-1.5 py-0.5 mx-0.5 bg-amber-100 text-amber-900 border border-amber-400 rounded-md font-bold text-xs shadow-2xs">
                     {part}
                   </span>
                 );
               }
-              if (/^(Google Sheets|Excel|Gemini|ChatGPT|Chatbot|Canva|Padlet)/i.test(part)) {
+              if (/^(Google Sheets|Google Forms|Excel|Gemini|ChatGPT|Chatbot|Canva|Padlet|Quizizz|PhET|Mentimeter|Kahoot)/i.test(part)) {
                 return (
-                  <span key={pIdx} className="inline-block px-1.5 py-0.5 mx-0.5 bg-sky-100 text-sky-900 border border-sky-400 rounded font-bold text-xs shadow-xs">
+                  <span key={pIdx} className="inline-block px-1.5 py-0.5 mx-0.5 bg-sky-100 text-sky-900 border border-sky-400 rounded-md font-bold text-xs shadow-2xs">
                     {part}
                   </span>
                 );
@@ -653,9 +690,12 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
           .replace(/&nbsp;/g, ' ')
           .replace(/&amp;/g, '&');
 
-        // Break before steps inside cells if merged on the same line
+        // Break before steps, GV/HS, subsections inside cells if merged on the same line
         rawPrepared = rawPrepared
-          .replace(/([.:;!?])\s+(-?\s*Bước\s+\d+:?)/gi, '$1\n$2')
+          .replace(/([^\n])\s+(-?\s*Bước\s+\d+:?)/gi, '$1\n$2')
+          .replace(/([^\n])\s+([•\-\+]?\s*(?:GV|HS|Giáo viên|Học sinh)\s*[:\-])/gi, '$1\n$2')
+          .replace(/([.:;!?])\s+(\d+\.\s+[A-ZÀ-ỸĐ])/g, '$1\n$2')
+          .replace(/([.:;!?])\s+([a-e][\)\.]\s+[A-ZÀ-ỸĐ])/g, '$1\n$2')
           .replace(/([;.:])\s+([•\-\+]\s+[A-ZÀ-ỸĐa-z0-9])/g, '$1\n$2');
 
         const cleanContent = formatChemistryAndMath(rawPrepared);
@@ -686,10 +726,16 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
             });
           }
 
-          // Check for step indicators like "Bước 1:", "Bước 2:"
+          // Check for step indicators like "Bước 1:", "Bước 2:" and GV/HS labels
           let lineText = rawLine;
           const stepMatch = lineText.match(/^(-?\s*Bước\s+\d+:?)(.*)$/i);
+          const gvHsMatch = !stepMatch && lineText.match(/^([•\-\+]?\s*(?:GV|HS|Giáo viên|Học sinh)\s*[:\-])(.*)$/i);
+
+          let paragraphSpacing = { before: 20, after: 20, line: 260 };
+          let indentConfig: any = undefined;
+
           if (stepMatch) {
+            paragraphSpacing = { before: 80, after: 30, line: 260 };
             runs.push(new TextRun({
               text: stepMatch[1].trim() + " ",
               bold: true,
@@ -698,6 +744,18 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
               color: "1E3A8A"
             }));
             lineText = stepMatch[2].trim();
+          } else if (gvHsMatch) {
+            indentConfig = { left: 160 }; // Indent 0.28cm for GV and HS activities
+            runs.push(new TextRun({
+              text: gvHsMatch[1].trim() + " ",
+              bold: true,
+              size: 22,
+              font: "Times New Roman",
+              color: "0F172A"
+            }));
+            lineText = gvHsMatch[2].trim();
+          } else if (/^[•\-\*\+]\s+/.test(lineText)) {
+            indentConfig = { left: 240, hanging: 120 };
           }
 
           // Parse bold markdown **...** and NLS/AI tags
@@ -749,7 +807,8 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
           return new Paragraph({
             children: runs,
             alignment: isCenterCol ? AlignmentType.CENTER : AlignmentType.JUSTIFIED,
-            spacing: { before: 20, after: 20, line: 260 }
+            spacing: paragraphSpacing,
+            indent: indentConfig
           });
         });
       };
@@ -769,9 +828,125 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
           return null;
         }
 
+        // Check if raw line contains multiple sub-lines after cleaning
+        if (cleanContent.includes('\n')) {
+          const splitLines = cleanContent.split('\n').map(s => s.trim()).filter(Boolean);
+          const paras: any[] = [];
+          for (const sl of splitLines) {
+            const p = formatBodyParagraph(sl);
+            if (p) {
+              if (Array.isArray(p)) paras.push(...p);
+              else paras.push(p);
+            }
+          }
+          return paras.length > 0 ? paras : null;
+        }
+
         const cleanNoMd = cleanText(cleanContent);
 
-        // 1. Major Section: "I. MỤC TIÊU", "II. THIẾT BỊ DẠY HỌC", "III. TIẾN TRÌNH DẠY HỌC", "IV. HỒ SƠ DẠY HỌC"
+        // 1. National Motto & Country Title: "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM" / "Độc lập - Tự do - Hạnh phúc"
+        if (/^CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM/i.test(cleanNoMd)) {
+          return new Paragraph({
+            children: [
+              new TextRun({
+                text: cleanNoMd,
+                bold: true,
+                size: 24, // 12pt
+                font: "Times New Roman",
+                color: "0F172A"
+              })
+            ],
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 60, after: 20 }
+          });
+        }
+        if (/^Độc lập\s*[-–]\s*Tự do\s*[-–]\s*Hạnh phúc/i.test(cleanNoMd)) {
+          return new Paragraph({
+            children: [
+              new TextRun({
+                text: cleanNoMd,
+                bold: true,
+                underline: {},
+                size: 24, // 12pt
+                font: "Times New Roman",
+                color: "0F172A"
+              })
+            ],
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 20, after: 120 }
+          });
+        }
+
+        // 2. School / Department Header Lines: "SỞ GD&ĐT...", "TRƯỜNG THPT...", "TỔ CHUYÊN MÔN...", "GIÁO VIÊN:..."
+        if (/^(?:SỞ|PHÒNG)\s+GD&ĐT|^TRƯỜNG\s+THPT|^TỔ\s+CHUYÊN\s+MÔN|^GIÁO\s+VIÊN\s*:/i.test(cleanNoMd)) {
+          return new Paragraph({
+            children: [
+              new TextRun({
+                text: cleanNoMd,
+                bold: true,
+                size: 24, // 12pt
+                font: "Times New Roman",
+                color: "1E293B"
+              })
+            ],
+            alignment: AlignmentType.LEFT,
+            spacing: { before: 30, after: 30 }
+          });
+        }
+
+        // 3. Lesson Plan Title: "KẾ HOẠCH BÀI DẠY", "GIÁO ÁN", "KẾ HOẠCH BÀI HỌC"
+        if (/^(?:KẾ\s+HOẠCH\s+BÀI\s+DẠY|GIÁO\s+ÁN|KẾ\s+HOẠCH\s+BÀI\s+HỌC)$/i.test(cleanNoMd)) {
+          return new Paragraph({
+            children: [
+              new TextRun({
+                text: cleanNoMd.toUpperCase(),
+                bold: true,
+                size: 30, // 15pt
+                font: "Times New Roman",
+                color: "0F172A"
+              })
+            ],
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 160, after: 40 }
+          });
+        }
+
+        // 4. Lesson Topic: "BÀI 12: ...", "BÀI 12. ..."
+        if (/^BÀI\s+\d+[:.]/i.test(cleanNoMd) || (/^BÀI\s+\d+/i.test(cleanNoMd) && cleanNoMd.length < 80)) {
+          return new Paragraph({
+            children: [
+              new TextRun({
+                text: cleanNoMd,
+                bold: true,
+                size: 28, // 14pt
+                font: "Times New Roman",
+                color: "1E3A8A" // Navy Blue
+              })
+            ],
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 40, after: 60 }
+          });
+        }
+
+        // 5. Subject / Duration / Class subtitle: "Môn học: ...", "Thời lượng: ...", "Lớp: ..."
+        if (/^(?:Môn|Môn học|Thời lượng|Thời gian thực hiện|Thời lượng thực hiện|Lớp|Tiết)\s*[:\-]/i.test(cleanNoMd) && cleanNoMd.length < 120) {
+          return new Paragraph({
+            children: [
+              new TextRun({
+                text: cleanNoMd,
+                bold: true,
+                italics: true,
+                size: 24, // 12pt
+                font: "Times New Roman",
+                color: "334155"
+              })
+            ],
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 20, after: 120 }
+          });
+        }
+
+        // 6. Major Section: "I. MỤC TIÊU", "II. THIẾT BỊ DẠY HỌC", "III. TIẾN TRÌNH DẠY HỌC", "IV. HỒ SƠ DẠY HỌC"
         const isMajorHeading = /^(I|II|III|IV|V|VI|VII|VIII|IX|X)\.\s+/i.test(cleanNoMd);
         if (isMajorHeading) {
           return new Paragraph({
@@ -789,7 +964,7 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
           });
         }
 
-        // 2. Activity Title: "HOẠT ĐỘNG 1: ...", "Hoạt động 1. ..."
+        // 7. Activity Title: "HOẠT ĐỘNG 1: ...", "Hoạt động 1. ..."
         const isActivity = /^hoạt động\s+\d+[:.]/i.test(cleanNoMd);
         if (isActivity) {
           return new Paragraph({
@@ -803,11 +978,12 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
               })
             ],
             alignment: AlignmentType.LEFT,
-            spacing: { before: 180, after: 80 }
+            spacing: { before: 180, after: 80 },
+            indent: { left: 360 }
           });
         }
 
-        // 3. Match Hierarchy Categories:
+        // 8. Match Hierarchy Categories:
         // Level 1: Numeric Section: "1. Về kiến thức", "2. Về năng lực", "1. Giáo viên:", "2. Học sinh:"
         const numMatch = cleanContent.match(/^(\d+\.[^:\n]{0,45}:?)(.*)$/i);
         const isNumeric = /^(\d+)\.\s+/i.test(cleanNoMd);
@@ -818,6 +994,9 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
 
         // Level 3: Pedagogical Step: "Bước 1: Chuyển giao nhiệm vụ", "- Bước 1: ..."
         const stepMatch = cleanContent.match(/^(-?\s*Bước\s+\d+:?)(.*)$/i);
+
+        // Teacher / Student Action: "+ GV:", "- GV:", "GV:", "+ HS:", "- HS:", "HS:"
+        const gvHsMatch = cleanContent.match(/^([•\-\+]?\s*(?:GV|HS|Giáo viên|Học sinh)\s*[:\-])(.*)$/i);
 
         let prefixRun: any = null;
         let mainContent = cleanContent;
@@ -834,7 +1013,18 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
           });
           mainContent = stepMatch[2].trim();
           indentConfig = { left: 1080 }; // Level 3 indent (~1.9cm)
-          paragraphSpacing = { before: 40, after: 30, line: 260 };
+          paragraphSpacing = { before: 50, after: 30, line: 260 };
+        } else if (gvHsMatch) {
+          prefixRun = new TextRun({
+            text: gvHsMatch[1].trim() + " ",
+            bold: true,
+            size: 24,
+            font: "Times New Roman",
+            color: "0F172A"
+          });
+          mainContent = gvHsMatch[2].trim();
+          indentConfig = { left: 1440 }; // Level 4 indent (~2.54cm) for GV/HS action
+          paragraphSpacing = { before: 20, after: 20, line: 260 };
         } else if (alphaMatch || isAlpha) {
           if (alphaMatch && alphaMatch[1]) {
             prefixRun = new TextRun({
@@ -866,7 +1056,7 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
           paragraphSpacing = { before: 20, after: 20, line: 260 };
         }
 
-        // 4. Build runs for line with markdown bold, NLS, AI tags, and digital tools
+        // Build runs for line with markdown bold, NLS, AI tags, and digital tools
         const runs: any[] = [];
         if (prefixRun) runs.push(prefixRun);
 
@@ -949,10 +1139,10 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
                     margins: { top: 120, bottom: 120, left: 140, right: 140 },
                     children: formatCellParagraphs(cellText, isHeader, isCenterCol),
                     borders: {
-                      top: { style: BorderStyle.SINGLE, size: 1, color: "64748B" },
-                      bottom: { style: BorderStyle.SINGLE, size: 1, color: "64748B" },
-                      left: { style: BorderStyle.SINGLE, size: 1, color: "64748B" },
-                      right: { style: BorderStyle.SINGLE, size: 1, color: "64748B" },
+                      top: { style: BorderStyle.SINGLE, size: 4, color: "1E293B" },
+                      bottom: { style: BorderStyle.SINGLE, size: 4, color: "1E293B" },
+                      left: { style: BorderStyle.SINGLE, size: 4, color: "1E293B" },
+                      right: { style: BorderStyle.SINGLE, size: 4, color: "1E293B" },
                     },
                     verticalAlign: VerticalAlign.TOP, // Vertical align top for pedagogical table alignment
                     shading: isHeader 
@@ -985,7 +1175,11 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
           if (line.length > 0) {
             const bodyPara = formatBodyParagraph(line);
             if (bodyPara) {
-              docChildren.push(bodyPara);
+              if (Array.isArray(bodyPara)) {
+                docChildren.push(...bodyPara);
+              } else {
+                docChildren.push(bodyPara);
+              }
             }
           }
         }

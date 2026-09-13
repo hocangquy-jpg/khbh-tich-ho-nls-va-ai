@@ -103,6 +103,20 @@ export const InputSection: React.FC<InputSectionProps> = ({
               bulletListMarker: '-',
             });
             turndownService.use(gfm);
+
+            // Preserve line breaks and list bullets inside table cells so they never merge into a single line
+            turndownService.addRule('tableCellBreaks', {
+              filter: ['p', 'div', 'li'],
+              replacement: function (content, node) {
+                if (node.closest && (node.closest('td') || node.closest('th'))) {
+                  const prefix = node.nodeName.toLowerCase() === 'li' ? '• ' : '';
+                  return content.trim() ? prefix + content.trim() + '<br>' : '';
+                }
+                if (node.nodeName.toLowerCase() === 'li') return '* ' + content + '\n';
+                return '\n\n' + content + '\n\n';
+              }
+            });
+
             const markdown = turndownService.turndown(processedHtml);
             return { 
               type: 'text', 
