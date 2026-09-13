@@ -166,7 +166,11 @@ export const normalizeHeadingsHierarchy = (text: string): string => {
     // 6. Break before GV / HS activity labels if merged on same line
     line = line.replace(/([.:;!?])\s+([•\-\+]?\s*(?:GV|HS|Giáo viên|Học sinh)\s*[:\-])/gi, "$1\n$2");
 
-    // 7. Break before bullets (+ or - or •) when following punctuation
+    // 7. Break before integrated digital/AI tasks with 👉 or task labels
+    line = line.replace(/([.:;!?])\s+(👉)/g, "$1\n$2");
+    line = line.replace(/([.:;!?])\s+([•\-\+]?\s*(?:Giao nhiệm vụ|Thực hiện nhiệm vụ|Báo cáo sản phẩm số|Nhiệm vụ số)[^:\n]*:)/gi, "$1\n👉 $2");
+
+    // 8. Break before bullets (+ or - or •) when following punctuation
     line = line.replace(/([;.:])\s+([•\-\+]\s+[A-ZÀ-ỸĐa-z0-9])/g, "$1\n$2");
 
     // Helper: Normalize excessive ALL-CAPS text (giữ nguyên câu hoa đầu chuẩn tiếng Việt, không hét ALL-CAPS, không phá hỏng công thức hóa học)
@@ -292,34 +296,50 @@ const FormattedDocumentViewer: React.FC<{ content: string; title: string; durati
       .replace(/&nbsp;/g, ' ')
       .replace(/&amp;/g, '&');
     
-    // Intelligently break before steps, GV/HS, and subsections inside cells if merged on one line
+    // Intelligently break before steps, GV/HS, integrated tasks and subsections inside cells if merged on one line
     cleanWithLineBreaks = cleanWithLineBreaks
       .replace(/([^\n])\s+(-?\s*Bước\s+\d+:?)/gi, '$1\n$2')
       .replace(/([^\n])\s+([•\-\+]?\s*(?:GV|HS|Giáo viên|Học sinh)\s*[:\-])/gi, '$1\n$2')
+      .replace(/([.:;!?])\s+(👉)/g, '$1\n$2')
       .replace(/([.:;!?])\s+(\d+\.\s+[A-ZÀ-ỸĐ])/g, '$1\n$2')
       .replace(/([.:;!?])\s+([a-e][\)\.]\s+[A-ZÀ-ỸĐ])/g, '$1\n$2');
 
     const lines = cleanWithLineBreaks.split('\n').map(s => s.trim()).filter(Boolean);
 
     return lines.map((line, lIdx) => {
+      // Check if line is an integrated task with red pointing finger icon: 👉
+      const isIntegrated = /^👉/i.test(line) || /👉/.test(line);
+
       // Check if line is a Step heading: "Bước 1: ...", "Bước 2: ..."
-      const isStep = /^(-?\s*Bước\s+\d+:?)/i.test(line);
-      const isGvHs = /^[•\-\+]?\s*(?:GV|HS|Giáo viên|Học sinh)\s*[:\-]/i.test(line);
+      const isStep = !isIntegrated && /^(-?\s*Bước\s+\d+:?)/i.test(line);
+      const isGvHs = !isIntegrated && /^[•\-\+]?\s*(?:GV|HS|Giáo viên|Học sinh)\s*[:\-]/i.test(line);
+
+      // Check if line is a Digital/AI Competency objective item in Section I
+      const isNlsGoalItem = !isIntegrated && (
+        /^[•\-\*\+]?\s*(?:\d+\.\d+\.[A-Za-z0-9]+|\[Mã\s+[^\]]+\]|NLS|NL\s*AI)\s*[:\-]/i.test(line) ||
+        /^(?:[a-e][\)\.]\s*)?(?:Năng\s+lực\s+số|NLS|Năng\s+lực\s+AI|NL\s*AI)/i.test(line)
+      );
 
       // Parse markdown bold **text** within each line
       const boldSegments = line.split(/(\*\*[^*]+\*\*)/g);
 
+      let containerClass = "leading-relaxed";
+      if (isIntegrated) {
+        // Red highlighted task box for digital & AI integrated tasks
+        containerClass = "leading-relaxed bg-red-50/90 border-l-4 border-red-600 px-3 py-2 rounded-r-lg my-2 text-red-700 font-medium shadow-2xs";
+      } else if (isNlsGoalItem) {
+        // Red highlighted objective item for NLS & AI in Section I
+        containerClass = "leading-relaxed text-red-700 font-medium bg-red-50/60 px-2.5 py-1 rounded-md border-l-3 border-red-500 my-1";
+      } else if (isStep) {
+        containerClass = "font-bold text-sky-900 bg-sky-50/75 px-2.5 py-1.5 rounded-lg border-l-3 border-sky-600 mt-3 mb-1.5 shadow-2xs";
+      } else if (isGvHs) {
+        containerClass = "pl-3 my-1 text-slate-900 font-medium";
+      } else if (lIdx > 0) {
+        containerClass = "mt-1";
+      }
+
       return (
-        <div 
-          key={lIdx} 
-          className={`leading-relaxed ${
-            isStep 
-              ? 'font-bold text-sky-900 bg-sky-50/75 px-2.5 py-1.5 rounded-lg border-l-3 border-sky-600 mt-3 mb-1.5 shadow-2xs' 
-              : isGvHs 
-                ? 'pl-3 my-1 text-slate-900 font-medium' 
-                : lIdx > 0 ? 'mt-1' : ''
-          }`}
-        >
+        <div key={lIdx} className={containerClass}>
           {boldSegments.map((segment, bIdx) => {
             const isBold = segment.startsWith('**') && segment.endsWith('**');
             const cleanSegment = isBold ? segment.slice(2, -2) : segment;
@@ -329,21 +349,42 @@ const FormattedDocumentViewer: React.FC<{ content: string; title: string; durati
             const renderedParts = parts.map((part, pIdx) => {
               if (/^(\[Mã\s+[^\]]+\]|\[NLS:[^\]]+\]|\[NL\s*AI:[^\]]+\]|Mã\s+[\w\.\-]+)/i.test(part)) {
                 return (
-                  <span key={pIdx} className="inline-block px-1.5 py-0.5 mx-0.5 bg-emerald-100 text-emerald-900 border border-emerald-400 rounded-md font-bold text-xs shadow-2xs">
+                  <span 
+                    key={pIdx} 
+                    className={`inline-block px-1.5 py-0.5 mx-0.5 rounded-md font-bold text-xs shadow-2xs ${
+                      isIntegrated || isNlsGoalItem
+                        ? "bg-red-100 text-red-900 border border-red-400"
+                        : "bg-emerald-100 text-emerald-900 border border-emerald-400"
+                    }`}
+                  >
                     {part}
                   </span>
                 );
               }
               if (/^(NLS|NL\s*AI)/i.test(part)) {
                 return (
-                  <span key={pIdx} className="inline-block px-1.5 py-0.5 mx-0.5 bg-amber-100 text-amber-900 border border-amber-400 rounded-md font-bold text-xs shadow-2xs">
+                  <span 
+                    key={pIdx} 
+                    className={`inline-block px-1.5 py-0.5 mx-0.5 rounded-md font-bold text-xs shadow-2xs ${
+                      isIntegrated || isNlsGoalItem
+                        ? "bg-red-100 text-red-900 border border-red-400"
+                        : "bg-amber-100 text-amber-900 border border-amber-400"
+                    }`}
+                  >
                     {part}
                   </span>
                 );
               }
               if (/^(Google Sheets|Google Forms|Excel|Gemini|ChatGPT|Chatbot|Canva|Padlet|Quizizz|PhET|Mentimeter|Kahoot)/i.test(part)) {
                 return (
-                  <span key={pIdx} className="inline-block px-1.5 py-0.5 mx-0.5 bg-sky-100 text-sky-900 border border-sky-400 rounded-md font-bold text-xs shadow-2xs">
+                  <span 
+                    key={pIdx} 
+                    className={`inline-block px-1.5 py-0.5 mx-0.5 rounded-md font-bold text-xs shadow-2xs ${
+                      isIntegrated || isNlsGoalItem
+                        ? "bg-red-100 text-red-900 border border-red-400"
+                        : "bg-sky-100 text-sky-900 border border-sky-400"
+                    }`}
+                  >
                     {part}
                   </span>
                 );
@@ -352,7 +393,14 @@ const FormattedDocumentViewer: React.FC<{ content: string; title: string; durati
             });
 
             if (isBold) {
-              return <strong key={bIdx} className="font-bold text-slate-950">{renderedParts}</strong>;
+              return (
+                <strong 
+                  key={bIdx} 
+                  className={`font-bold ${isIntegrated || isNlsGoalItem ? "text-red-900" : "text-slate-950"}`}
+                >
+                  {renderedParts}
+                </strong>
+              );
             }
             return <React.Fragment key={bIdx}>{renderedParts}</React.Fragment>;
           })}
@@ -410,9 +458,10 @@ const FormattedDocumentViewer: React.FC<{ content: string; title: string; durati
         }
 
         if (block.type === 'subsection') {
+          const isNlsSubsection = /(?:năng\s+lực\s+số|nls|năng\s+lực\s+ai|nl\s*ai)/i.test(block.content || '');
           return (
             <div key={index} className="mt-2.5 mb-1 ml-8">
-              <div className="font-bold text-sm text-lime-950 flex items-baseline gap-1.5">
+              <div className={`font-bold text-sm ${isNlsSubsection ? 'text-red-700' : 'text-lime-950'} flex items-baseline gap-1.5`}>
                 {renderHighlightedText(block.content || '')}
               </div>
             </div>
@@ -420,9 +469,10 @@ const FormattedDocumentViewer: React.FC<{ content: string; title: string; durati
         }
 
         if (block.type === 'step') {
+          const isIntegratedStep = /^👉/i.test((block.content || '').trim()) || /👉/.test(block.content || '');
           return (
-            <div key={index} className="ml-12 my-1.5 pl-3 py-1.5 bg-slate-50/80 border-l-3 border-sky-500 rounded-r text-sm">
-              <div className="text-slate-800">
+            <div key={index} className={`ml-12 my-1.5 pl-3 py-1.5 ${isIntegratedStep ? 'bg-red-50/90 border-l-4 border-red-600 text-red-700' : 'bg-slate-50/80 border-l-3 border-sky-500 text-slate-800'} rounded-r text-sm`}>
+              <div>
                 {renderHighlightedText(block.content || '')}
               </div>
             </div>
@@ -430,8 +480,10 @@ const FormattedDocumentViewer: React.FC<{ content: string; title: string; durati
         }
 
         if (block.type === 'bullet') {
+          const isNlsBullet = /^[•\-\*\+]?\s*(?:\d+\.\d+\.[A-Za-z0-9]+|\[Mã\s+[^\]]+\]|NLS|NL\s*AI)\s*[:\-]/i.test(block.content || '') || /(?:năng\s+lực\s+số|nls|năng\s+lực\s+ai|nl\s*ai)/i.test(block.content || '');
+          const isIntegratedBullet = /^👉/i.test((block.content || '').trim()) || /👉/.test(block.content || '');
           return (
-            <div key={index} className="ml-12 my-1 text-sm text-slate-800 relative pl-4 before:content-['•'] before:absolute before:left-0 before:text-lime-700 before:font-bold">
+            <div key={index} className={`ml-12 my-1 text-sm ${isNlsBullet || isIntegratedBullet ? 'text-red-700 font-medium' : 'text-slate-800'} relative pl-4 before:content-['•'] before:absolute before:left-0 ${isNlsBullet || isIntegratedBullet ? 'before:text-red-600' : 'before:text-lime-700'} before:font-bold`}>
               {renderHighlightedText(block.content || '')}
             </div>
           );
@@ -728,13 +780,27 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
 
           // Check for step indicators like "Bước 1:", "Bước 2:" and GV/HS labels
           let lineText = rawLine;
-          const stepMatch = lineText.match(/^(-?\s*Bước\s+\d+:?)(.*)$/i);
-          const gvHsMatch = !stepMatch && lineText.match(/^([•\-\+]?\s*(?:GV|HS|Giáo viên|Học sinh)\s*[:\-])(.*)$/i);
+          const isIntegrated = /^👉/i.test(lineText.trim()) || /👉/.test(lineText);
+          const stepMatch = !isIntegrated && lineText.match(/^(-?\s*Bước\s+\d+:?)(.*)$/i);
+          const gvHsMatch = !isIntegrated && !stepMatch && lineText.match(/^([•\-\+]?\s*(?:GV|HS|Giáo viên|Học sinh)\s*[:\-])(.*)$/i);
 
           let paragraphSpacing = { before: 20, after: 20, line: 260 };
           let indentConfig: any = undefined;
 
-          if (stepMatch) {
+          if (isIntegrated) {
+            paragraphSpacing = { before: 40, after: 40, line: 260 };
+            indentConfig = { left: 160 }; // Thụt lề nhẹ cho nhiệm vụ tích hợp
+            // Đảm bảo có icon 👉 màu đỏ ở đầu
+            if (!lineText.trim().startsWith('👉')) {
+              runs.push(new TextRun({
+                text: "👉 ",
+                bold: true,
+                size: 22,
+                font: "Times New Roman",
+                color: "C00000" // Đỏ chuẩn Bộ GD&ĐT
+              }));
+            }
+          } else if (stepMatch) {
             paragraphSpacing = { before: 80, after: 30, line: 260 };
             runs.push(new TextRun({
               text: stepMatch[1].trim() + " ",
@@ -768,7 +834,18 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
             const parts = cleanPart.split(/(\[Mã\s+[^\]]+\]|\[NLS:[^\]]+\]|\[NL\s*AI:[^\]]+\]|Mã\s+[\w\.\-]+|NLS|NL\s*AI|Google Sheets|Google Forms|Excel|Gemini|ChatGPT|Chatbot|Canva|Padlet|Quizizz|PhET|Mentimeter|Kahoot)/gi);
             parts.forEach(part => {
               if (!part) return;
-              if (/^(\[Mã\s+[^\]]+\]|\[NLS:[^\]]+\]|\[NL\s*AI:[^\]]+\]|Mã\s+[\w\.\-]+)/i.test(part)) {
+              if (isIntegrated) {
+                // Toàn bộ phần tích hợp có icon 👉 trong bảng được bôi đỏ 100%
+                const isCode = /^(\[Mã\s+[^\]]+\]|\[NLS:[^\]]+\]|\[NL\s*AI:[^\]]+\]|Mã\s+[\w\.\-]+)/i.test(part);
+                const isTool = /^(Google Sheets|Google Forms|Excel|Gemini|ChatGPT|Chatbot|Canva|Padlet|Quizizz|PhET|Mentimeter|Kahoot|NLS|NL\s*AI)/i.test(part);
+                runs.push(new TextRun({
+                  text: part,
+                  bold: isBold || isCode || isTool,
+                  size: 22,
+                  font: "Times New Roman",
+                  color: "C00000" // Màu đỏ nổi bật cho toàn bộ nhiệm vụ tích hợp
+                }));
+              } else if (/^(\[Mã\s+[^\]]+\]|\[NLS:[^\]]+\]|\[NL\s*AI:[^\]]+\]|Mã\s+[\w\.\-]+)/i.test(part)) {
                 runs.push(new TextRun({
                   text: part,
                   bold: true,
@@ -984,6 +1061,13 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
         }
 
         // 8. Match Hierarchy Categories:
+        // Digital / AI Integration Task with 👉 icon
+        const isIntegratedTask = /^👉/i.test(cleanContent.trim()) || /👉/.test(cleanContent);
+
+        // Digital / AI Competency in Objectives (Section I)
+        const isNlsGoalHeader = !isIntegratedTask && /^(?:[a-e][\)\.]\s+)?(?:Năng\s+lực\s+số|NLS|Năng\s+lực\s+AI|NL\s*AI)/i.test(cleanNoMd);
+        const isNlsGoalItem = !isIntegratedTask && /^[•\-\*\+]?\s*(?:\d+\.\d+\.[A-Za-z0-9]+|\[Mã\s+[^\]]+\]|NLS|NL\s*AI)\s*[:\-]/i.test(cleanNoMd);
+
         // Level 1: Numeric Section: "1. Về kiến thức", "2. Về năng lực", "1. Giáo viên:", "2. Học sinh:"
         const numMatch = cleanContent.match(/^(\d+\.[^:\n]{0,45}:?)(.*)$/i);
         const isNumeric = /^(\d+)\.\s+/i.test(cleanNoMd);
@@ -1003,7 +1087,50 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
         let indentConfig: any = { firstLine: 360 }; // Default paragraph indent 1.27cm
         let paragraphSpacing = { before: 30, after: 30, line: 276 };
 
-        if (stepMatch) {
+        if (isIntegratedTask) {
+          indentConfig = { left: 1440 }; // Level 4 indent (~2.54cm)
+          paragraphSpacing = { before: 50, after: 40, line: 260 };
+          let remaining = cleanContent.trim();
+          if (remaining.startsWith('👉')) {
+            remaining = remaining.replace(/^👉\s*/, '');
+          }
+          prefixRun = new TextRun({
+            text: "👉 ",
+            bold: true,
+            size: 24, // 12pt
+            font: "Times New Roman",
+            color: "C00000" // Đỏ chuẩn Bộ GD&ĐT
+          });
+          mainContent = remaining;
+        } else if (isNlsGoalHeader) {
+          if (alphaMatch && alphaMatch[1]) {
+            prefixRun = new TextRun({
+              text: alphaMatch[1].trim() + " ",
+              bold: true,
+              size: 25, // 12.5pt
+              font: "Times New Roman",
+              color: "C00000" // Bôi đỏ tiểu mục NLS
+            });
+            mainContent = (alphaMatch[2] || "").trim();
+          }
+          indentConfig = { left: 720 };
+          paragraphSpacing = { before: 70, after: 30, line: 260 };
+        } else if (isNlsGoalItem) {
+          // Bôi đỏ gạch đầu dòng mã chỉ báo NLS trong mục tiêu
+          const itemMatch = cleanContent.match(/^([•\-\*\+]?\s*(?:\d+\.\d+\.[A-Za-z0-9]+|\[Mã\s+[^\]]+\]|NLS|NL\s*AI)\s*[:\-])(.*)$/i);
+          if (itemMatch) {
+            prefixRun = new TextRun({
+              text: itemMatch[1].trim() + " ",
+              bold: true,
+              size: 24,
+              font: "Times New Roman",
+              color: "C00000" // Đỏ cho mã năng lực số
+            });
+            mainContent = itemMatch[2].trim();
+          }
+          indentConfig = { left: 1080, hanging: 240 };
+          paragraphSpacing = { before: 20, after: 20, line: 260 };
+        } else if (stepMatch) {
           prefixRun = new TextRun({
             text: stepMatch[1].trim() + " ",
             bold: true,
@@ -1070,7 +1197,18 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
           
           subParts.forEach(sp => {
             if (!sp) return;
-            if (/^(\[Mã\s+[^\]]+\]|\[NLS:[^\]]+\]|\[NL\s*AI:[^\]]+\]|Mã\s+[\w\.\-]+)/i.test(sp)) {
+            if (isIntegratedTask || isNlsGoalItem || isNlsGoalHeader) {
+              // Bôi đỏ 100% cho các phần tích hợp NLS/AI và mục tiêu NLS
+              const isCode = /^(\[Mã\s+[^\]]+\]|\[NLS:[^\]]+\]|\[NL\s*AI:[^\]]+\]|Mã\s+[\w\.\-]+)/i.test(sp);
+              const isTool = /^(Google Sheets|Google Forms|Excel|Gemini|ChatGPT|Chatbot|Canva|Padlet|Quizizz|PhET|Mentimeter|Kahoot|NLS|NL\s*AI)/i.test(sp);
+              runs.push(new TextRun({
+                text: sp,
+                bold: isBold || isCode || isTool || isNlsGoalHeader,
+                size: 24,
+                font: "Times New Roman",
+                color: "C00000" // Màu đỏ chuẩn
+              }));
+            } else if (/^(\[Mã\s+[^\]]+\]|\[NLS:[^\]]+\]|\[NL\s*AI:[^\]]+\]|Mã\s+[\w\.\-]+)/i.test(sp)) {
               runs.push(new TextRun({
                 text: sp,
                 bold: true,

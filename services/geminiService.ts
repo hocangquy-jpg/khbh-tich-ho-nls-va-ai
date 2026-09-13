@@ -123,6 +123,43 @@ export const generateEnhancedLessonPlan = async (
        - Giữ nguyên văn phong chuẩn mực sư phạm tiếng Việt.
 
     ========================================================================
+    NGUYÊN TẮC CỐT LÕI VỀ PHẠM VI TÍCH HỢP (TUYỆT ĐỐI TUÂN THỦ):
+    ========================================================================
+    - CHỈ TÍCH HỢP NĂNG LỰC SỐ VÀ NĂNG LỰC AI VÀO ĐÚNG CÁC HOẠT ĐỘNG / TIẾT HỌC MÀ NGƯỜI DÙNG ĐÃ NHẬP LIỆU HOẶC CHỈ ĐỊNH RÕ TRONG Ô NHẬP LIỆU (nội dung bổ sung, ô 'Tiết học', ô 'Yêu cầu thêm').
+    - TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ Ý TÍCH HỢP NĂNG LỰC SỐ VÀ NĂNG LỰC AI CHO TẤT CẢ CÁC HOẠT ĐỘNG CỦA BÀI HỌC!
+    - Nếu người dùng chỉ định một hoặc một số hoạt động cụ thể (ví dụ: chỉ tích hợp ở Hoạt động Khởi động, hoặc chỉ Hoạt động Luyện tập, hoặc chỉ một nhiệm vụ cụ thể mà người dùng ghi chú trong ô nhập liệu):
+      + CHỈ thực hiện tích hợp NLS/NLAI và đặt icon 👉 cho đúng hoạt động / nhiệm vụ đó.
+      + TẤT CẢ CÁC HOẠT ĐỘNG CÒN LẠI PHẢI GIỮ NGUYÊN 100% NỘI DUNG VÀ TIẾN TRÌNH GỐC CỦA GIÁO ÁN, không thêm công cụ số, không thêm mã chỉ báo, không thêm icon 👉 bôi đỏ vào các hoạt động không được yêu cầu!
+    - Nếu người dùng tải lên toàn bộ bài nhưng trong ô nhập liệu / yêu cầu thêm chỉ nêu rõ tích hợp cho hoạt động/tiết nào thì TUYỆT ĐỐI CHỈ TÍCH HỢP ĐÚNG HOẠT ĐỘNG ĐÓ. 
+    - Nếu người dùng không chỉ định đích danh hoạt động nào mà chỉ yêu cầu chung: Chỉ chọn lọc 1 đến tối đa 2 hoạt động thực sự trọng tâm và phù hợp nhất để tích hợp, TUYỆT ĐỐI KHÔNG TÍCH HỢP TRÀN LAN VÀO TẤT CẢ CÁC HOẠT ĐỘNG!
+
+    ========================================================================
+    QUY TẮC BÔI ĐỎ PHẦN TÍCH HỢP (YÊU CẦU ĐẶC BIỆT CỦA BỘ & GIÁO VIÊN):
+    ========================================================================
+    1. TẠI PHẦN I. MỤC TIÊU:
+       - Bắt buộc thiết lập tiểu mục riêng về Năng lực số (NLS) và Năng lực AI (NL AI) theo đúng khung đã chọn:
+         c) Năng lực số (NLS) và Năng lực AI:
+         - [Mã chỉ báo]: [Mô tả chi tiết năng lực đạt được]
+         Thí dụ chuẩn mực:
+         c) Năng lực số (NLS) và Năng lực AI:
+         - 1.1.NC1a: Đáp ứng được nhu cầu thông tin (Khai thác dữ liệu & thông tin).
+         - 5.3.NC1a: Áp dụng được các công cụ và công nghệ số để tạo ra kiến thức mới (Giải quyết vấn đề).
+         - 11.C3.2: Sử dụng công cụ AI một cách có trách nhiệm để đối chiếu và phản biện thông tin.
+       - Toàn bộ tiểu mục c) Năng lực số và các gạch đầu dòng mã chỉ báo này sẽ được hệ thống TÔ MÀU ĐỎ NỔI BẬT cả trên màn hình xem trước lẫn trong tệp Word (.docx) xuất ra.
+
+    2. TẠI PHẦN TIẾN TRÌNH DẠY HỌC (TỔ CHỨC THỰC HIỆN - KỂ CẢ TRONG Ô BẢNG LẪN DẠNG VĂN BẢN):
+       - Tại bất kỳ bước nào (Bước 1: Chuyển giao nhiệm vụ, Bước 2: Thực hiện nhiệm vụ, Bước 3: Báo cáo, thảo luận, Bước 4: Kết luận, nhận định) có lồng ghép hoạt động tích hợp NLS hoặc NLAI:
+         BẮT BUỘC ĐẶT ICON NGÓN TAY CHỈ 👉 Ở ĐẦU CÂU/NHIỆM VỤ ĐÓ ĐỂ HỆ THỐNG TỰ ĐỘNG BÔI ĐỎ TOÀN BỘ NỘI DUNG TÍCH HỢP!
+       - Thí dụ chuẩn mực trong ô bảng "Hoạt động của GV - HS":
+         **Bước 1: Chuyển giao nhiệm vụ**<br>+ GV: Chia lớp thành các nhóm 4-6 học sinh, hướng dẫn quy trình làm việc.<br>👉 **Giao nhiệm vụ:** HS sử dụng công cụ số (như Canva hoặc Padlet) để tổng hợp sơ đồ tư duy về quá trình phát triển của Vật lí [Mã 5.3.NC1a].<br>+ HS: Lắng nghe, nhận nhiệm vụ, đăng nhập vào không gian làm việc nhóm trực tuyến.<br><br>**Bước 2: Thực hiện nhiệm vụ**<br>👉 **Thực hiện nhiệm vụ:** HS chủ động tra cứu dữ liệu số, thảo luận nhóm và tương tác với công cụ AI (Gemini/ChatGPT) để so sánh các giả thuyết [Mã 1.1.NC1a] [NL AI: 11.C3.2].<br>+ GV: Quan sát, đôn đốc, hỗ trợ kỹ thuật số và nhắc nhở HS đối chiếu tính xác thực của thông tin từ AI.<br><br>**Bước 3: Báo cáo, thảo luận**<br>👉 **Báo cáo sản phẩm số:** Đại diện các nhóm chia sẻ màn hình / gửi link Padlet trình chiếu sơ đồ tư duy [Mã 2.2.NC1b].<br>+ Các nhóm khác: Quan sát, nhận xét và chấm chéo trên phiếu đánh giá số (Google Forms).<br><br>**Bước 4: Kết luận, nhận định**<br>+ GV: Nhận xét tinh thần làm việc, chuẩn hóa kiến thức cốt lõi, lưu trữ sản phẩm số của học sinh lên kho học liệu lớp học.
+       - Thí dụ chuẩn mực ngoài bảng (dạng văn bản):
+         - Bước 1: Chuyển giao nhiệm vụ
+           + GV: Nêu vấn đề và chia nhóm học tập...
+           👉 **Giao nhiệm vụ:** HS sử dụng công cụ số (như Canva hoặc Padlet) để tổng hợp sơ đồ tư duy về quá trình phát triển của Vật lí [Mã 5.3.NC1a].
+           + HS: Tiếp nhận nhiệm vụ...
+       - Mọi câu bắt đầu bằng 👉 sẽ được hệ thống tự động bôi đỏ toàn bộ chữ, giúp giáo viên, tổ trưởng và đoàn thanh tra/dự giờ nhận biết ngay lập tức phần tích hợp công nghệ số và AI!
+
+    ========================================================================
     CÁCH THỨC TÍCH HỢP NĂNG LỰC SỐ (NLS) VÀ NĂNG LỰC AI (NLAI) CHUẨN XÁC:
     ========================================================================
     - Tại mục Mục tiêu: Bổ sung hoặc cập nhật mục "Năng lực số (NLS) và Năng lực AI (NL AI)" với các mã chỉ báo cụ thể được chọn (ví dụ: Mã 1.1.NC1b, 1.3.NC1a, Mã 11.C3.2...) kèm mô tả hành vi người học đạt được.
@@ -169,14 +206,28 @@ BẠN PHẢI TUÂN THỦ NGHIÊM TÚC VÀ CHUYÊN NGHIỆP CÁC NGUYÊN TẮC SA
 1. GIỮ LẠI DẠNG CỘT / DẠNG BẢNG CỦA KHBH GỐC:
    - Nếu bản gốc có bảng (ví dụ bảng 2 cột "Hoạt động của GV - HS | Dự kiến sản phẩm", bảng ma trận thời lượng hoặc bảng nhiều cột): BẮT BUỘC GIỮ NGUYÊN ĐÚNG BẢNG ĐÓ VỚI ĐÚNG SỐ CỘT VÀ TIÊU ĐỀ CỘT CỦA BẢN GỐC!
    - Tuyệt đối không xóa bảng, không chuyển bảng thành dạng văn bản thông thường, không biến bảng 2 cột thành 5 cột!
-2. PHẦN TÍCH HỢP NLS VÀ NLAI BẮT BUỘC ĐƯỢC LỒNG GHÉP TRỰC TIẾP TRONG HOẠT ĐỘNG CỦA GV VÀ HS (nếu hoạt động đó được yêu cầu tích hợp).
-   - Nêu rõ GV giao nhiệm vụ/công cụ số gì, HS thao tác/tra cứu/tương tác AI ra sao, kèm mã [Mã ...] tương ứng.
+2. PHẠM VI TÍCH HỢP (TUYỆT ĐỐI TUÂN THỦ - KHÔNG TÍCH HỢP CHO TẤT CẢ CÁC HOẠT ĐỘNG):
+   - CHỈ TÍCH HỢP Năng lực số và Năng lực AI vào ĐÚNG các nội dung hoạt động / tiết học mà người dùng đã nhập liệu vào ô nhập liệu hoặc nêu rõ trong ghi chú / yêu cầu.
+   - TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ Ý TÍCH HỢP CHO TẤT CẢ CÁC HOẠT ĐỘNG CỦA BÀI HỌC! 
+   - Những hoạt động không được người dùng chỉ định tích hợp: BẮT BUỘC GIỮ NGUYÊN 100% NỘI DUNG VÀ TIẾN TRÌNH GỐC, KHÔNG thêm icon 👉, KHÔNG thêm công cụ số hay mã chỉ báo vào đó.
+   - Nêu rõ GV giao nhiệm vụ/công cụ số gì, HS thao tác/tra cứu/tương tác AI ra sao, kèm mã [Mã ...] tương ứng trong đúng hoạt động được tích hợp.
    - Tuyệt đối không tách thành một mục riêng đứng ngoài tiến trình hoạt động.
 3. TRÌNH BÀY CÓ ĐỀ MỤC, CÓ XUỐNG DÒNG, KHÔNG ĐƯỢC VIẾT LIỀN:
    - Trong các ô bảng: Bắt buộc dùng thẻ <br> để xuống dòng rõ ràng giữa các bước (**Bước 1: Chuyển giao nhiệm vụ**, **Bước 2: Thực hiện nhiệm vụ**, **Bước 3: Báo cáo, thảo luận**, **Bước 4: Kết luận, nhận định**), giữa hoạt động của GV (+ GV:) và HS (+ HS:). Tuyệt đối không viết dính liền nhau.
-4. NẾU BẢN GỐC LÀ DẠNG VĂN BẢN (không dùng bảng): Giữ nguyên 100% dạng văn bản đó với đầy đủ các mục a) Mục tiêu, b) Nội dung, c) Sản phẩm, d) Tổ chức thực hiện (Bước 1, 2, 3, 4).
-5. QUY CHUẨN CHỮ VIẾT: Viết hoa chuẩn tiếng Việt (Sentence case), tuyệt đối không dùng ALL-CAPS viết hoa toàn bộ câu/đoạn.
-6. BẢO TOÀN 100% NỘI DUNG GỐC: Không tóm tắt, xuất toàn văn hoàn chỉnh từ đầu đến cuối.
+4. BÔI ĐỎ PHẦN TÍCH HỢP Ở MỤC TIÊU VÀ TỔ CHỨC THỰC HIỆN:
+   - Tại phần I. Mục tiêu: Thiết lập mục riêng:
+     c) Năng lực số (NLS) và Năng lực AI:
+     - 1.1.NC1a: Đáp ứng được nhu cầu thông tin (Khai thác dữ liệu & thông tin).
+     - 5.3.NC1a: Áp dụng được các công cụ và công nghệ số để tạo ra kiến thức mới (Giải quyết vấn đề).
+     (Hệ thống sẽ tự động bôi đỏ toàn bộ phần năng lực số này).
+   - Tại phần Tổ chức thực hiện (trong ô bảng hoặc ngoài bảng): BẮT BUỘC ĐẶT ICON NGÓN TAY CHỈ 👉 Ở ĐẦU MỖI CÂU/NHIỆM VỤ CÓ TÍCH HỢP NLS/NLAI:
+     Ví dụ:
+     👉 **Giao nhiệm vụ:** HS sử dụng công cụ số (như Canva hoặc Padlet) để tổng hợp sơ đồ tư duy về quá trình phát triển của Vật lí [Mã 5.3.NC1a].
+     👉 **Thực hiện nhiệm vụ:** HS sử dụng công cụ AI (Gemini hoặc ChatGPT) để tra cứu, đối chiếu và phản biện thông tin [Mã 1.1.NC1a] [NL AI: 11.C3.2].
+     (Hệ thống sẽ tự động bôi đỏ toàn bộ câu sau icon 👉 để làm nổi bật 100% phần tích hợp).
+5. NẾU BẢN GỐC LÀ DẠNG VĂN BẢN (không dùng bảng): Giữ nguyên 100% dạng văn bản đó với đầy đủ các mục a) Mục tiêu, b) Nội dung, c) Sản phẩm, d) Tổ chức thực hiện (Bước 1, 2, 3, 4).
+6. QUY CHUẨN CHỮ VIẾT: Viết hoa chuẩn tiếng Việt (Sentence case), tuyệt đối không dùng ALL-CAPS viết hoa toàn bộ câu/đoạn.
+7. BẢO TOÀN 100% NỘI DUNG GỐC: Không tóm tắt, xuất toàn văn hoàn chỉnh từ đầu đến cuối.
 ${input.sessionDetails ? `Chi tiết phân bổ tiết học: ${input.sessionDetails}.` : ''}
 ${input.text ? `\nNội dung văn bản/ghi chú kèm theo: ${input.text}` : ''}`;
 

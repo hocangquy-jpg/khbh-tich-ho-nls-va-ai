@@ -223,11 +223,16 @@ export const InputSection: React.FC<InputSectionProps> = ({
         </div>
 
         {/* Layout preservation badge */}
-        <div className="mt-3 bg-white/80 border-2 border-[#1a230f] rounded-xl px-3 py-2 flex items-center gap-2 shadow-[2px_2px_0_0_rgba(26,35,15,1)]">
-          <ShieldCheck className="w-4 h-4 text-lime-700 flex-shrink-0" />
-          <span className="text-[10px] font-black text-lime-950 uppercase tracking-tight">
-            Cam kết: Giữ nguyên 100% hình dạng & bố cục file gốc (dạng cột / dạng văn bản)
-          </span>
+        <div className="mt-3 bg-white/90 border-2 border-[#1a230f] rounded-xl px-3 py-2 flex flex-col gap-1 shadow-[2px_2px_0_0_rgba(26,35,15,1)]">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-lime-700 flex-shrink-0" />
+            <span className="text-[10px] font-black text-lime-950 uppercase tracking-tight">
+              Giữ nguyên 100% hình dạng & bố cục file gốc (dạng cột / dạng văn bản)
+            </span>
+          </div>
+          <div className="text-[10px] text-red-700 font-bold pl-6">
+            🎯 Chỉ tích hợp vào đúng các hoạt động được nhập/chỉ định, không tích hợp tràn lan tất cả hoạt động.
+          </div>
         </div>
       </div>
       
@@ -247,8 +252,8 @@ export const InputSection: React.FC<InputSectionProps> = ({
       
       <div className="flex-1 p-5 bg-white relative">
         <textarea
-            className="w-full h-full p-5 text-lg text-lime-800 leading-relaxed bg-[#fdfdf7] border-4 border-[#1a230f] rounded-2xl focus:outline-none focus:ring-4 focus:ring-lime-200 resize-none transition-all placeholder:text-lime-300 font-bold"
-            placeholder="Nội dung văn bản bổ sung (nếu có)..."
+            className="w-full h-full p-5 text-lg text-lime-800 leading-relaxed bg-[#fdfdf7] border-4 border-[#1a230f] rounded-2xl focus:outline-none focus:ring-4 focus:ring-lime-200 resize-none transition-all placeholder:text-lime-400 font-bold"
+            placeholder="Dán hoặc nhập nội dung hoạt động cần tích hợp (Ví dụ: Chỉ tích hợp vào Hoạt động Khởi động hoặc Hoạt động 2 Hình thành kiến thức)..."
             value={value}
             onChange={(e) => onChange(e.target.value)}
             disabled={isLoading || isReadingFile}
@@ -256,7 +261,7 @@ export const InputSection: React.FC<InputSectionProps> = ({
         {!hasContent && (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none opacity-30">
             <FileUp className="w-12 h-12 text-lime-600 mx-auto mb-2" />
-            <p className="font-black uppercase text-xs text-lime-800">Vui lòng tải tệp nguồn</p>
+            <p className="font-black uppercase text-xs text-lime-800">Tải tệp hoặc nhập hoạt động cần tích hợp</p>
           </div>
         )}
       </div>
