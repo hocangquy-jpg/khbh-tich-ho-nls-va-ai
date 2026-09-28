@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { 
   Lightbulb, Download, Trash2, Sparkles, Box, Cpu, Copy, Check, 
-  FileText, Layout, ShieldCheck, Columns3, CheckCircle2, Info
+  FileText, Layout, ShieldCheck, Columns3, CheckCircle2, Info,
+  PenTool, UserCheck, Settings2
 } from 'lucide-react';
 import { LessonPlanResponse } from '../types';
 
@@ -220,7 +221,14 @@ export const normalizeHeadingsHierarchy = (text: string): string => {
 };
 
 // Formatted Interactive Document Renderer
-const FormattedDocumentViewer: React.FC<{ content: string; title: string; duration: string }> = ({ content, title, duration }) => {
+const FormattedDocumentViewer: React.FC<{ 
+  content: string; 
+  title: string; 
+  duration: string;
+  teacherName?: string;
+  headName?: string;
+  includeSignature?: boolean;
+}> = ({ content, title, duration, teacherName = 'Hồ Cang', headName = 'Hồ Cang', includeSignature = true }) => {
   // Parse content into blocks: text paragraphs, headings, lists, tables with strict hierarchy
   const blocks = useMemo(() => {
     const normalized = normalizeHeadingsHierarchy(content);
@@ -546,6 +554,33 @@ const FormattedDocumentViewer: React.FC<{ content: string; title: string; durati
           </div>
         );
       })}
+
+      {/* Signature Section at the bottom of the Lesson Plan */}
+      {includeSignature && (
+        <div className="mt-14 pt-8 border-t-2 border-dashed border-slate-300 grid grid-cols-1 sm:grid-cols-2 gap-8 text-center bg-slate-50/70 p-6 rounded-2xl border border-slate-200">
+          {/* Left Column: Teacher Name */}
+          <div className="flex flex-col items-center">
+            <p className="font-bold text-base text-slate-900 uppercase tracking-tight">Họ và tên giáo viên</p>
+            <p className="italic text-xs text-slate-500 mt-0.5">(Ký và ghi rõ họ tên)</p>
+            {/* Blank space for signing / inserting signature */}
+            <div className="my-3 h-20 w-48 border border-dashed border-slate-300 rounded-xl flex items-center justify-center bg-white/70">
+              <span className="text-[11px] text-slate-400 italic font-medium">Khoảng trống để ký tên</span>
+            </div>
+            <p className="font-bold text-base text-slate-900 tracking-tight">{teacherName || "Hồ Cang"}</p>
+          </div>
+
+          {/* Right Column: Head of Department */}
+          <div className="flex flex-col items-center">
+            <p className="font-bold text-base text-slate-900 uppercase tracking-tight">Tổ trưởng chuyên môn</p>
+            <p className="italic text-xs text-slate-500 mt-0.5">(Ký và ghi rõ họ tên)</p>
+            {/* Blank space for signing / inserting signature */}
+            <div className="my-3 h-20 w-48 border border-dashed border-slate-300 rounded-xl flex items-center justify-center bg-white/70">
+              <span className="text-[11px] text-slate-400 italic font-medium">Khoảng trống để ký tên</span>
+            </div>
+            <p className="font-bold text-base text-slate-900 tracking-tight">{headName || "Hồ Cang"}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -554,6 +589,12 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
   const [isGenerating, setIsGenerating] = useState(false);
   const [viewMode, setViewMode] = useState<'visual' | 'raw'>('visual');
   const [copied, setCopied] = useState(false);
+  
+  // Signature and Teacher information state (default: "Hồ Cang" as requested)
+  const [teacherName, setTeacherName] = useState('Hồ Cang');
+  const [headName, setHeadName] = useState('Hồ Cang');
+  const [includeSignature, setIncludeSignature] = useState(true);
+  const [showSignatureSettings, setShowSignatureSettings] = useState(false);
 
   // Analyze whether the document has tables and determine maximum columns
   const tableAnalytics = useMemo(() => {
@@ -597,7 +638,7 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
       const { 
         Document, Packer, Paragraph, Table, TableRow, TableCell, 
         WidthType, BorderStyle, PageOrientation, AlignmentType, TextRun, VerticalAlign,
-        Footer, PageNumber
+        Footer, PageNumber, ImageRun
       } = await import('docx');
       const fileSaver = await import('file-saver');
       const saveAs = fileSaver.saveAs || fileSaver.default.saveAs;
@@ -1324,9 +1365,148 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
       }
       if (currentTableRows.length > 0) processTable();
 
-      // Official Vietnamese standard margins (Nghị định 30/2020/NĐ-CP):
-      // Portrait: Top 2cm (1134), Bottom 2cm (1134), Left 2.5cm (1417), Right 1.5cm (850)
-      // Landscape: Top 1.5cm (850), Bottom 1.5cm (850), Left 2cm (1134), Right 1.5cm (850)
+      // Add signature section at the bottom of the Word document (CV 5512 & Official requirement)
+      if (includeSignature) {
+        try {
+          // Add clean vertical spacing before signature block
+          docChildren.push(new Paragraph({ text: "", spacing: { before: 240, after: 120 } }));
+
+          const signatureTable = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: {
+              top: { style: BorderStyle.NONE },
+              bottom: { style: BorderStyle.NONE },
+              left: { style: BorderStyle.NONE },
+              right: { style: BorderStyle.NONE },
+              insideHorizontal: { style: BorderStyle.NONE },
+              insideVertical: { style: BorderStyle.NONE }
+            },
+            rows: [
+              new TableRow({
+                cantSplit: true,
+                children: [
+                  // GÓC TRÁI: Họ và tên giáo viên
+                  new TableCell({
+                    width: { size: 50, type: WidthType.PERCENTAGE },
+                    borders: {
+                      top: { style: BorderStyle.NONE },
+                      bottom: { style: BorderStyle.NONE },
+                      left: { style: BorderStyle.NONE },
+                      right: { style: BorderStyle.NONE }
+                    },
+                    children: [
+                      new Paragraph({
+                        children: [
+                          new TextRun({
+                            text: "Họ và tên giáo viên",
+                            bold: true,
+                            size: 24, // 12pt
+                            font: "Times New Roman",
+                            color: "0F172A"
+                          })
+                        ],
+                        alignment: AlignmentType.CENTER,
+                        spacing: { before: 120, after: 20 }
+                      }),
+                      new Paragraph({
+                        children: [
+                          new TextRun({
+                            text: "(Ký và ghi rõ họ tên)",
+                            italics: true,
+                            size: 22, // 11pt
+                            font: "Times New Roman",
+                            color: "475569"
+                          })
+                        ],
+                        alignment: AlignmentType.CENTER,
+                        spacing: { before: 0, after: 30 }
+                      }),
+                      // Chừa khoảng trống để ký tên (tương đương 4-5 dòng trống)
+                      new Paragraph({
+                        text: "",
+                        spacing: { before: 720, after: 0 }
+                      }),
+                      new Paragraph({
+                        children: [
+                          new TextRun({
+                            text: teacherName || "Hồ Cang",
+                            bold: true,
+                            size: 24, // 12pt
+                            font: "Times New Roman",
+                            color: "0F172A"
+                          })
+                        ],
+                        alignment: AlignmentType.CENTER,
+                        spacing: { before: 20, after: 60 }
+                      })
+                    ]
+                  }),
+                  // GÓC PHẢI: Tổ trưởng chuyên môn
+                  new TableCell({
+                    width: { size: 50, type: WidthType.PERCENTAGE },
+                    borders: {
+                      top: { style: BorderStyle.NONE },
+                      bottom: { style: BorderStyle.NONE },
+                      left: { style: BorderStyle.NONE },
+                      right: { style: BorderStyle.NONE }
+                    },
+                    children: [
+                      new Paragraph({
+                        children: [
+                          new TextRun({
+                            text: "Tổ trưởng chuyên môn",
+                            bold: true,
+                            size: 24, // 12pt
+                            font: "Times New Roman",
+                            color: "0F172A"
+                          })
+                        ],
+                        alignment: AlignmentType.CENTER,
+                        spacing: { before: 120, after: 20 }
+                      }),
+                      new Paragraph({
+                        children: [
+                          new TextRun({
+                            text: "(Ký và ghi rõ họ tên)",
+                            italics: true,
+                            size: 22, // 11pt
+                            font: "Times New Roman",
+                            color: "475569"
+                          })
+                        ],
+                        alignment: AlignmentType.CENTER,
+                        spacing: { before: 0, after: 30 }
+                      }),
+                      // Chừa khoảng trống để ký tên (tương đương 4-5 dòng trống)
+                      new Paragraph({
+                        text: "",
+                        spacing: { before: 720, after: 0 }
+                      }),
+                      new Paragraph({
+                        children: [
+                          new TextRun({
+                            text: headName || "Hồ Cang",
+                            bold: true,
+                            size: 24, // 12pt
+                            font: "Times New Roman",
+                            color: "0F172A"
+                          })
+                        ],
+                        alignment: AlignmentType.CENTER,
+                        spacing: { before: 20, after: 60 }
+                      })
+                    ]
+                  })
+                ]
+              })
+            ]
+          });
+          docChildren.push(signatureTable);
+        } catch (sigErr) {
+          console.warn("Could not attach signature section to docx:", sigErr);
+        }
+      }
+
       const pageMargins = orientation === 'portrait' 
         ? { top: 1134, bottom: 1134, left: 1417, right: 850 }
         : { top: 850, bottom: 850, left: 1134, right: 850 };
@@ -1467,12 +1647,24 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Signature Configuration Toggle */}
+          <button
+            onClick={() => setShowSignatureSettings(!showSignatureSettings)}
+            className={`flex items-center gap-1.5 text-[11px] font-black uppercase px-3 py-2 rounded-xl border-2 border-[#1a230f] shadow-[2px_2px_0_0_rgba(26,35,15,1)] active:translate-y-0.5 transition-all ${
+              showSignatureSettings ? 'bg-amber-100 text-amber-950 ring-2 ring-amber-500' : 'bg-white hover:bg-amber-50 text-slate-800'
+            }`}
+            title="Tùy chỉnh họ tên phần ký duyệt cuối bài"
+          >
+            <PenTool className="w-3.5 h-3.5 text-blue-700" />
+            <span>✍️ Ký duyệt: {teacherName || "Hồ Cang"}</span>
+          </button>
+
           <button
             onClick={handleCopy}
             className="flex items-center gap-1 bg-white hover:bg-lime-50 text-slate-800 text-[11px] font-black uppercase px-3 py-2 rounded-xl border-2 border-[#1a230f] shadow-[2px_2px_0_0_rgba(26,35,15,1)] active:translate-y-0.5 transition-all"
             title="Sao chép toàn bộ nội dung"
           >
-            {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+            {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5 text-slate-700" />}
             <span>{copied ? "Đã sao chép!" : "Sao chép"}</span>
           </button>
 
@@ -1481,7 +1673,7 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
             onClick={() => handleDownload('portrait')}
             disabled={isGenerating}
             className="flex items-center gap-1.5 bg-lime-700 hover:bg-lime-800 text-white text-[11px] font-black uppercase px-3 py-2 rounded-xl border-2 border-[#1a230f] shadow-[3px_3px_0_0_rgba(26,35,15,1)] active:translate-y-0.5 transition-all disabled:opacity-50"
-            title="Xuất file Word khổ dọc tiêu chuẩn Bộ GD&ĐT"
+            title="Xuất file Word khổ dọc kèm phần ký duyệt"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Tải Word A4 (Khổ dọc)</span>
@@ -1496,7 +1688,7 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
                 ? 'bg-amber-600 hover:bg-amber-700 ring-2 ring-amber-400' 
                 : 'bg-amber-600 hover:bg-amber-700'
             }`}
-            title="Xuất file Word khổ ngang tối ưu nhất cho bảng biểu nhiều cột"
+            title="Xuất file Word khổ ngang tối ưu nhất cho bảng biểu nhiều cột kèm phần ký duyệt"
           >
             <Download className="w-3.5 h-3.5" />
             <span>
@@ -1513,6 +1705,69 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
           </button>
         </div>
       </div>
+
+      {/* Collapsible Signature & Signer Settings Drawer */}
+      {showSignatureSettings && (
+        <div className="bg-gradient-to-r from-amber-50 to-lime-50 border-b-2 border-[#1a230f] p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="max-w-4xl mx-auto space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <PenTool className="w-4 h-4 text-blue-700" />
+                <h4 className="text-xs font-black text-slate-900 uppercase tracking-tight">
+                  Cài đặt phần Ký duyệt cuối KHBH (Chuẩn Công văn 5512)
+                </h4>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-800 bg-white px-2.5 py-1 rounded-lg border border-slate-300 shadow-2xs">
+                <input
+                  type="checkbox"
+                  checked={includeSignature}
+                  onChange={(e) => setIncludeSignature(e.target.checked)}
+                  className="rounded text-lime-700 focus:ring-lime-500 w-4 h-4"
+                />
+                <span>Bật phần ký duyệt cuối bài</span>
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+              {/* Left Column Settings */}
+              <div className="bg-white p-3 rounded-xl border border-slate-300 shadow-2xs space-y-2">
+                <label className="block text-[11px] font-black text-slate-700 uppercase">
+                  Góc trái: Họ và tên giáo viên
+                </label>
+                <input
+                  type="text"
+                  value={teacherName}
+                  onChange={(e) => setTeacherName(e.target.value)}
+                  placeholder="Hồ Cang"
+                  className="w-full text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-300 focus:outline-none focus:border-lime-600 focus:ring-1 focus:ring-lime-600 bg-slate-50/50"
+                />
+                <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-100">
+                  <span>Họ tên: <strong className="text-slate-900">Hồ Cang</strong></span>
+                  <span className="text-emerald-700 font-bold">✓ Chừa khoảng trống ký tên</span>
+                </div>
+              </div>
+
+              {/* Right Column Settings */}
+              <div className="bg-white p-3 rounded-xl border border-slate-300 shadow-2xs space-y-2">
+                <label className="block text-[11px] font-black text-slate-700 uppercase">
+                  Góc phải: Tổ trưởng chuyên môn
+                </label>
+                <input
+                  type="text"
+                  value={headName}
+                  onChange={(e) => setHeadName(e.target.value)}
+                  placeholder="Hồ Cang"
+                  className="w-full text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-300 focus:outline-none focus:border-lime-600 focus:ring-1 focus:ring-lime-600 bg-slate-50/50"
+                />
+                <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-100">
+                  <span>Họ tên: <strong className="text-slate-900">Hồ Cang</strong></span>
+                  <span className="text-emerald-700 font-bold">✓ Chừa khoảng trống ký tên</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main output display */}
       <div className="flex-1 overflow-y-auto p-6 bg-lime-50/20 scrollbar-thin scrollbar-thumb-lime-400 space-y-4">
@@ -1554,6 +1809,9 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
             content={data.fullPlanContent} 
             title={data.lessonTitle} 
             duration={data.lessonDuration} 
+            teacherName={teacherName}
+            headName={headName}
+            includeSignature={includeSignature}
           />
         ) : (
           <div className="bg-white p-6 rounded-2xl border-2 border-[#1a230f] shadow-md">
