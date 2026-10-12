@@ -1,10 +1,10 @@
-
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import { BookOpen, Sparkles, Image as ImageIcon, FileText, FileUp, Target, Trash2, X, Paperclip, Clock, ShieldCheck, Volume2 } from 'lucide-react';
-import { ProcessingStatus, MediaInput } from '../types';
-import { DEFAULT_LESSON_PLAN } from '../constants';
+import { ProcessingStatus, MediaInput, ActivityTarget } from '../types';
+import { DEFAULT_LESSON_PLAN, SAMPLE_LESSON_PLAN } from '../constants';
 import { CompetencySelector } from './CompetencySelector';
 import { AICompetencySelector } from './AICompetencySelector';
+import { ActivitySelector } from './ActivitySelector';
 
 interface InputSectionProps {
   value: string;
@@ -22,6 +22,10 @@ interface InputSectionProps {
   onAICompetencyChange: (ids: string[]) => void;
   focusArea: string;
   onFocusAreaChange: (val: string) => void;
+  targetActivity: ActivityTarget;
+  onTargetActivityChange: (target: ActivityTarget) => void;
+  subActivity?: string;
+  onSubActivityChange?: (val: string) => void;
 }
 
 export const InputSection: React.FC<InputSectionProps> = ({ 
@@ -39,7 +43,11 @@ export const InputSection: React.FC<InputSectionProps> = ({
   selectedAICompetencyIds,
   onAICompetencyChange,
   focusArea,
-  onFocusAreaChange
+  onFocusAreaChange,
+  targetActivity,
+  onTargetActivityChange,
+  subActivity,
+  onSubActivityChange
 }) => {
   const isGreeting = status === ProcessingStatus.GREETING;
   const isAnalyzing = status === ProcessingStatus.ANALYZING;
@@ -47,6 +55,12 @@ export const InputSection: React.FC<InputSectionProps> = ({
   const imageInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
   const [isReadingFile, setIsReadingFile] = useState(false);
+
+  const detectedImagesCount = useMemo(() => {
+    const mdImages = (value.match(/!\[[^\]]*\]\([^\)]+\)/g) || []).length;
+    const htmlImages = (value.match(/<img\s+[^>]*src=/gi) || []).length;
+    return mdImages + htmlImages + mediaInputs.length;
+  }, [value, mediaInputs]);
 
   const processFiles = async (files: FileList) => {
     setIsReadingFile(true);
@@ -65,16 +79,33 @@ export const InputSection: React.FC<InputSectionProps> = ({
           if (isDocx) {
             const mammoth = await import('mammoth');
             const arrayBuffer = await file.arrayBuffer();
-            const result = await mammoth.convertToHtml({ arrayBuffer });
+            const result = await (mammoth as any).convertToHtml({
+              arrayBuffer,
+              convertImage: (mammoth as any).images ? (mammoth as any).images.dataUri : undefined
+            });
             
-            // Pre-process HTML to prevent nested tables inside table cells from breaking the outer table markdown layout
+            // Pre-process HTML to guarantee clean tables and layout preservation
             let processedHtml = result.value;
             if (typeof window !== 'undefined' && typeof DOMParser !== 'undefined') {
               try {
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(processedHtml, 'text/html');
                 
-                // Find all nested tables inside td or th
+                // 1. Ensure every table has <th> in first row so turndown-plugin-gfm converts to standard markdown table
+                const tables = doc.querySelectorAll('table');
+                tables.forEach(table => {
+                  const firstRow = table.querySelector('tr');
+                  if (firstRow && firstRow.querySelectorAll('th').length === 0) {
+                    const tds = Array.from(firstRow.querySelectorAll('td'));
+                    tds.forEach(td => {
+                      const th = doc.createElement('th');
+                      th.innerHTML = td.innerHTML;
+                      td.parentNode?.replaceChild(th, td);
+                    });
+                  }
+                });
+
+                // 2. Pre-process nested tables inside td or th to prevent layout breakage
                 const nestedTables = doc.querySelectorAll('td table, th table');
                 nestedTables.forEach(nestedTable => {
                   const rows = Array.from(nestedTable.querySelectorAll('tr'));
@@ -86,13 +117,13 @@ export const InputSection: React.FC<InputSectionProps> = ({
                     }
                   });
                   const replacement = doc.createElement('div');
-                  replacement.innerHTML = '<br><strong>[Bảng số liệu con:]</strong><br>' + lines.map(l => `• ${l}`).join('<br>') + '<br>';
+                  replacement.innerHTML = '<br><strong>[Bảng con:]</strong><br>' + lines.map(l => `• ${l}`).join('<br>') + '<br>';
                   nestedTable.parentNode?.replaceChild(replacement, nestedTable);
                 });
                 
                 processedHtml = doc.body.innerHTML;
               } catch (e) {
-                console.error("Error preprocessing HTML nested tables:", e);
+                console.error("Error preprocessing HTML tables:", e);
               }
             }
 
@@ -114,6 +145,20 @@ export const InputSection: React.FC<InputSectionProps> = ({
                 }
                 if (node.nodeName.toLowerCase() === 'li') return '* ' + content + '\n';
                 return '\n\n' + content + '\n\n';
+              }
+            });
+
+            // Preserve images with correct spacing both inside tables and in text
+            turndownService.addRule('imagesPreservation', {
+              filter: 'img',
+              replacement: function (content, node) {
+                const alt = node.getAttribute('alt') || 'Hình ảnh';
+                const src = node.getAttribute('src') || '';
+                if (!src) return '';
+                if (node.closest && (node.closest('td') || node.closest('th'))) {
+                  return `<br>![${alt}](${src})<br>`;
+                }
+                return `\n\n![${alt}](${src})\n\n`;
               }
             });
 
@@ -199,39 +244,58 @@ export const InputSection: React.FC<InputSectionProps> = ({
             )}
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           <input type="file" ref={imageInputRef} onChange={(e) => e.target.files && processFiles(e.target.files)} accept="image/*" className="hidden" multiple />
           <input type="file" ref={docInputRef} onChange={(e) => e.target.files && processFiles(e.target.files)} accept=".pdf,.docx,.txt" className="hidden" multiple />
           
           <button 
             onClick={() => imageInputRef.current?.click()}
             disabled={isLoading || isReadingFile}
-            className="flex items-center justify-center gap-2 bg-lime-600 hover:bg-lime-700 text-white border-2 border-[#1a230f] py-3 rounded-xl font-black text-[11px] uppercase tracking-widest shadow-[4px_4px_0_0_rgba(26,35,15,1)] active:translate-y-0.5 active:shadow-none transition-all disabled:opacity-50"
+            className="flex items-center justify-center gap-1.5 bg-lime-600 hover:bg-lime-700 text-white border-2 border-[#1a230f] py-2.5 px-2 rounded-xl font-black text-[10px] sm:text-[11px] uppercase tracking-wider shadow-[3px_3px_0_0_rgba(26,35,15,1)] active:translate-y-0.5 active:shadow-none transition-all disabled:opacity-50"
+            title="Đính kèm thêm hình ảnh bài dạy"
           >
-            <ImageIcon className="w-4 h-4" />
-            TẢI ẢNH KHBH
+            <ImageIcon className="w-3.5 h-3.5" />
+            Tải ảnh KHBH
           </button>
 
           <button 
             onClick={() => docInputRef.current?.click()}
             disabled={isLoading || isReadingFile}
-            className="flex items-center justify-center gap-2 bg-stone-600 hover:bg-stone-700 text-white border-2 border-[#1a230f] py-3 rounded-xl font-black text-[11px] uppercase tracking-widest shadow-[4px_4px_0_0_rgba(26,35,15,1)] active:translate-y-0.5 active:shadow-none transition-all disabled:opacity-50"
+            className="flex items-center justify-center gap-1.5 bg-stone-600 hover:bg-stone-700 text-white border-2 border-[#1a230f] py-2.5 px-2 rounded-xl font-black text-[10px] sm:text-[11px] uppercase tracking-wider shadow-[3px_3px_0_0_rgba(26,35,15,1)] active:translate-y-0.5 active:shadow-none transition-all disabled:opacity-50"
+            title="Tải lên tệp Word (.docx) hoặc PDF gốc"
           >
-            <FileText className="w-4 h-4" />
-            Tải PDF/Word gốc
+            <FileText className="w-3.5 h-3.5" />
+            Tải Word/PDF
+          </button>
+
+          <button 
+            onClick={() => onChange(SAMPLE_LESSON_PLAN)}
+            disabled={isLoading || isReadingFile}
+            className="flex items-center justify-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white border-2 border-[#1a230f] py-2.5 px-2 rounded-xl font-black text-[10px] sm:text-[11px] uppercase tracking-wider shadow-[3px_3px_0_0_rgba(26,35,15,1)] active:translate-y-0.5 active:shadow-none transition-all disabled:opacity-50"
+            title="Nạp giáo án mẫu chuẩn CV 5512 có bảng 2 cột, hình ảnh và hoạt động GV-HS chi tiết"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-yellow-200" />
+            Mẫu CV 5512
           </button>
         </div>
 
-        {/* Layout preservation badge */}
-        <div className="mt-3 bg-white/90 border-2 border-[#1a230f] rounded-xl px-3 py-2 flex flex-col gap-1 shadow-[2px_2px_0_0_rgba(26,35,15,1)]">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-lime-700 flex-shrink-0" />
-            <span className="text-[10px] font-black text-lime-950 uppercase tracking-tight">
-              Giữ nguyên 100% hình dạng & bố cục file gốc (dạng cột / dạng văn bản)
-            </span>
+        {/* Layout & Image preservation badge */}
+        <div className="mt-3 bg-white/95 border-2 border-[#1a230f] rounded-xl px-3 py-2 flex flex-col gap-1.5 shadow-[2px_2px_0_0_rgba(26,35,15,1)]">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-lime-700 flex-shrink-0" />
+              <span className="text-[10px] font-black text-lime-950 uppercase tracking-tight">
+                Bảo toàn 100% hình ảnh & bố cục file gốc (dạng bảng / văn bản)
+              </span>
+            </div>
+            {detectedImagesCount > 0 && (
+              <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-900 border border-amber-400 text-[10px] font-black px-2 py-0.5 rounded-full">
+                📸 {detectedImagesCount} hình ảnh
+              </span>
+            )}
           </div>
           <div className="text-[10px] text-red-700 font-bold pl-6">
-            🎯 Chỉ tích hợp vào đúng các hoạt động được nhập/chỉ định, không tích hợp tràn lan tất cả hoạt động.
+            🎯 Tích hợp rõ ràng, chi tiết hoạt động của Giáo viên và Học sinh (👉) theo chuẩn CV 5512.
           </div>
         </div>
       </div>
@@ -295,6 +359,16 @@ export const InputSection: React.FC<InputSectionProps> = ({
                 />
             </div>
         </div>
+      </div>
+
+      {/* Activity selection - Only integrate into chosen activity */}
+      <div className="px-5 py-3 bg-lime-100/60 border-t-2 border-[#1a230f]">
+        <ActivitySelector
+          selectedMode={targetActivity}
+          onSelectMode={onTargetActivityChange}
+          customActivityName={subActivity}
+          onCustomActivityNameChange={onSubActivityChange}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2">

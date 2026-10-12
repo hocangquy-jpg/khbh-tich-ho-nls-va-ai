@@ -22,13 +22,21 @@ const cleanText = (text: string) => {
 
 // Cleanly format chemistry isotopes, formulas, subscripts, superscripts and reaction arrows
 export const formatChemistryAndMath = (text: string): string => {
+  // Protect markdown images and data:image URIs so that math/chemistry regex does not mangle base64 strings
+  const protectedImages: string[] = [];
+  const safeText = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (fullMatch) => {
+    const idx = protectedImages.length;
+    protectedImages.push(fullMatch);
+    return `###IMG_PRESERVED_${idx}###`;
+  });
+
   const supMap: Record<string, string> = { "0":"⁰","1":"¹","2":"²","3":"³","4":"⁴","5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹","+":"⁺","-":"⁻","n":"ⁿ","m":"ᵐ" };
   const subMap: Record<string, string> = { "0":"₀","1":"₁","2":"₂","3":"₃","4":"₄","5":"₅","6":"₆","7":"₇","8":"₈","9":"₉","+":"₊","-":"₋" };
 
   const toSup = (s: string) => s.split('').map(c => supMap[c] || c).join('');
   const toSub = (s: string) => s.split('').map(c => subMap[c] || c).join('');
 
-  return text
+  let processed = safeText
     .replace(/\\rightarrow|->/g, '→')
     .replace(/\\rightleftharpoons|<=>/g, '⇌')
     .replace(/\\cdot/g, '·')
@@ -43,6 +51,13 @@ export const formatChemistryAndMath = (text: string): string => {
     .replace(/\^([0-9+-n]+)/g, (_, sup) => toSup(sup))
     .replace(/_([0-9+-]+)/g, (_, sub) => toSub(sub))
     .replace(/\$/g, '');
+
+  // Restore protected images
+  processed = processed.replace(/###IMG_PRESERVED_(\d+)###/g, (_, idx) => {
+    return protectedImages[Number(idx)] || '';
+  });
+
+  return processed;
 };
 
 // Sanitize and normalize table rows to strictly guarantee that all rows have exactly the same number of columns as the header
@@ -135,8 +150,8 @@ export const normalizeHeadingsHierarchy = (text: string): string => {
 
   for (const rawLine of lines) {
     const trimmed = rawLine.trim();
-    // Do not split inside markdown table rows
-    if (trimmed.startsWith('|')) {
+    // Do not split inside markdown table rows or image lines
+    if (trimmed.startsWith('|') || /^!\[[^\]]*\]\(data:image\//.test(trimmed)) {
       result.push(rawLine);
       continue;
     }
@@ -234,8 +249,9 @@ const FormattedDocumentViewer: React.FC<{
     const normalized = normalizeHeadingsHierarchy(content);
     const rawLines = normalized.split('\n');
     const result: Array<{ 
-      type: 'heading1' | 'heading2' | 'activity' | 'numericSection' | 'subsection' | 'step' | 'table' | 'bullet' | 'text' | 'empty'; 
+      type: 'heading1' | 'heading2' | 'activity' | 'numericSection' | 'subsection' | 'step' | 'table' | 'bullet' | 'text' | 'image' | 'empty'; 
       content?: string; 
+      alt?: string;
       rows?: string[][] 
     }> = [];
     
@@ -286,11 +302,19 @@ const FormattedDocumentViewer: React.FC<{
           result.push({ type: 'step', content: clean });
         } else if (/^[•\-\*\+]\s+/.test(line)) {
           result.push({ type: 'bullet', content: clean });
+        } else if (/^!\[([^\]]*)\]\((data:image\/[^)\s]+|https?:\/\/[^)\s]+)\)/.test(line)) {
+          const imgMatch = line.match(/^!\[([^\]]*)\]\((data:image\/[^)\s]+|https?:\/\/[^)\s]+)\)/);
+          if (imgMatch) {
+            result.push({ type: 'image' as any, content: imgMatch[2], alt: imgMatch[1] } as any);
+          } else {
+            result.push({ type: 'text', content: clean });
+          }
         } else {
           result.push({ type: 'text', content: clean });
         }
       }
     }
+
     flushTable();
     return result;
   }, [content]);
@@ -315,6 +339,25 @@ const FormattedDocumentViewer: React.FC<{
     const lines = cleanWithLineBreaks.split('\n').map(s => s.trim()).filter(Boolean);
 
     return lines.map((line, lIdx) => {
+      // Check if line is an embedded markdown image
+      const inlineImgMatch = line.match(/^!\[([^\]]*)\]\((data:image\/[^)\s]+|https?:\/\/[^)\s]+)\)$/);
+      if (inlineImgMatch) {
+        return (
+          <div key={lIdx} className="my-3 flex flex-col items-center justify-center p-2 bg-slate-50/90 rounded-xl border border-slate-200">
+            <img 
+              src={inlineImgMatch[2]} 
+              alt={inlineImgMatch[1] || 'Hình ảnh'} 
+              className="max-h-60 w-auto object-contain rounded shadow-xs"
+            />
+            {inlineImgMatch[1] && inlineImgMatch[1].trim() && !/^hình ảnh$/i.test(inlineImgMatch[1].trim()) && (
+              <span className="mt-1 text-[11px] italic text-slate-500 font-medium text-center">
+                {inlineImgMatch[1]}
+              </span>
+            )}
+          </div>
+        );
+      }
+
       // Check if line is an integrated task with red pointing finger icon: 👉
       const isIntegrated = /^👉/i.test(line) || /👉/.test(line);
 
@@ -544,6 +587,23 @@ const FormattedDocumentViewer: React.FC<{
           );
         }
 
+        if ((block as any).type === 'image') {
+          return (
+            <div key={index} className="my-6 flex flex-col items-center justify-center p-3 bg-slate-50/80 rounded-2xl border border-slate-200 shadow-sm max-w-xl mx-auto">
+              <img 
+                src={block.content} 
+                alt={(block as any).alt || 'Hình ảnh giáo án'} 
+                className="max-h-80 w-auto object-contain rounded-lg shadow-sm"
+              />
+              {(block as any).alt && (block as any).alt.trim() && !/^hình ảnh$/i.test((block as any).alt.trim()) && (
+                <p className="mt-2 text-xs italic text-slate-600 font-medium text-center">
+                  {(block as any).alt}
+                </p>
+              )}
+            </div>
+          );
+        }
+
         if (block.type === 'empty') {
           return <div key={index} className="h-2" />;
         }
@@ -640,6 +700,51 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
         WidthType, BorderStyle, PageOrientation, AlignmentType, TextRun, VerticalAlign,
         Footer, PageNumber, ImageRun
       } = await import('docx');
+
+      const createDocxImageRuns = (dataUri: string, altText?: string, maxW = 380, maxH = 240) => {
+        try {
+          const commaIdx = dataUri.indexOf(',');
+          const base64Data = (commaIdx !== -1 ? dataUri.substring(commaIdx + 1) : dataUri).replace(/\s/g, '');
+          const binaryStr = atob(base64Data);
+          const bytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) {
+            bytes[i] = binaryStr.charCodeAt(i);
+          }
+          const paras: any[] = [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 120, after: 60 },
+              children: [
+                new ImageRun({
+                  data: bytes,
+                  transformation: { width: maxW, height: maxH }
+                })
+              ]
+            })
+          ];
+          if (altText && altText.trim() && !/^hình ảnh$/i.test(altText.trim())) {
+            paras.push(
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 20, after: 120 },
+                children: [
+                  new TextRun({
+                    text: altText.trim(),
+                    italics: true,
+                    size: 20,
+                    font: "Times New Roman",
+                    color: "475569"
+                  })
+                ]
+              })
+            );
+          }
+          return paras;
+        } catch (e) {
+          console.error("Error creating ImageRun in docx:", e);
+          return null;
+        }
+      };
       const fileSaver = await import('file-saver');
       const saveAs = fileSaver.saveAs || fileSaver.default.saveAs;
       
@@ -801,7 +906,14 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
           })];
         }
 
-        return cellLines.map(rawLine => {
+        return cellLines.flatMap(rawLine => {
+          // Check if line inside table cell is a markdown image
+          const cellImgMatch = rawLine.match(/^!\[([^\]]*)\]\((data:image\/[^)\s]+|https?:\/\/[^)\s]+)\)$/);
+          if (cellImgMatch) {
+            const imgParas = createDocxImageRuns(cellImgMatch[2], cellImgMatch[1], 240, 160);
+            if (imgParas && imgParas.length > 0) return imgParas;
+          }
+
           const runs: any[] = [];
 
           if (isHeader) {
@@ -958,6 +1070,13 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
             }
           }
           return paras.length > 0 ? paras : null;
+        }
+
+        // Check if raw line is a markdown image
+        const bodyImgMatch = cleanContent.match(/^!\[([^\]]*)\]\((data:image\/[^)\s]+|https?:\/\/[^)\s]+)\)$/);
+        if (bodyImgMatch) {
+          const imgParas = createDocxImageRuns(bodyImgMatch[2], bodyImgMatch[1], 380, 240);
+          if (imgParas) return imgParas;
         }
 
         const cleanNoMd = cleanText(cleanContent);

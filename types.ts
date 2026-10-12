@@ -12,6 +12,9 @@ export interface Competency {
   domain: string; // e.g., "Khai thác dữ liệu và thông tin"
 }
 
+export type ActivityTarget = 'all' | 'act1' | 'act2' | 'act3' | 'act4' | 'custom';
+
+
 export interface Enhancement {
   section: string; // e.g., "Hoạt động 1"
   originalText: string;

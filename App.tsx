@@ -4,18 +4,20 @@ import { OutputSection } from './components/OutputSection';
 import SnowEffect from './components/SnowEffect';
 import { MusicPlayer } from './components/MusicPlayer';
 import { DEFAULT_LESSON_PLAN, DIGITAL_COMPETENCIES, AI_COMPETENCIES } from './constants';
-import { ProcessingStatus, LessonPlanResponse, MediaInput } from './types';
+import { ProcessingStatus, LessonPlanResponse, MediaInput, ActivityTarget } from './types';
 import { generateEnhancedLessonPlan } from './services/geminiService';
 import { playHueGreetingVoice } from './services/voiceAssistant';
 import { LayoutGrid, AlertCircle, Sparkles, Snowflake } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [inputContent, setInputContent] = useState<string>("");
+  const [inputContent, setInputContent] = useState<string>(DEFAULT_LESSON_PLAN);
   const [mediaInputs, setMediaInputs] = useState<MediaInput[]>([]);
   const [sessionDetails, setSessionDetails] = useState<string>("");
   const [selectedCompetencyIds, setSelectedCompetencyIds] = useState<string[]>(DIGITAL_COMPETENCIES.map(c => c.id));
   const [selectedAICompetencyIds, setSelectedAICompetencyIds] = useState<string[]>([]);
   const [focusArea, setFocusArea] = useState<string>("");
+  const [targetActivity, setTargetActivity] = useState<ActivityTarget>('act2');
+  const [subActivity, setSubActivity] = useState<string>("");
   const [outputData, setOutputData] = useState<LessonPlanResponse | null>(null);
   const [status, setStatus] = useState<ProcessingStatus>(ProcessingStatus.IDLE);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -31,7 +33,9 @@ const App: React.FC = () => {
         { text: inputContent, media: mediaInputs, sessionDetails }, 
         selectedCompetencyIds, 
         selectedAICompetencyIds,
-        focusArea
+        focusArea,
+        targetActivity,
+        subActivity
       );
       setOutputData(result);
       setStatus(ProcessingStatus.COMPLETED);
@@ -161,6 +165,10 @@ const App: React.FC = () => {
               onAICompetencyChange={setSelectedAICompetencyIds}
               focusArea={focusArea}
               onFocusAreaChange={setFocusArea}
+              targetActivity={targetActivity}
+              onTargetActivityChange={setTargetActivity}
+              subActivity={subActivity}
+              onSubActivityChange={setSubActivity}
             />
           </div>
           <div className="h-full">

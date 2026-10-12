@@ -176,6 +176,62 @@ export const AI_COMPETENCIES: Competency[] = [
   { id: '12.D2.MR3', name: 'Xây dựng và kiểm thử hệ thống tác nhân AI đơn giản phục vụ học tập/cộng đồng', domain: 'Lớp 12 - D. Thiết kế hệ thống AI' },
 ];
 
-export const DEFAULT_LESSON_PLAN = '';
+// Hình ảnh minh họa thí nghiệm chuẩn (Data URI PNG)
+export const SAMPLE_EXPERIMENT_IMAGE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAAB4CAYAAADWq7Z4AAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAAPSURBVHic7cEBDQAAAMKg909tDwcUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgDcbSAABbZk2sQAAAABJRU5ErkJggg==';
 
-export const SAMPLE_LESSON_PLAN = '';
+export const SAMPLE_LESSON_PLAN = `SỞ GD&ĐT THỪA THIÊN HUẾ - TRƯỜNG THPT CHU VĂN AN
+TỔ CHUYÊN MÔN: VẬT LÍ - CÔNG NGHỆ
+
+# KẾ HOẠCH BÀI DẠY
+## BÀI 15: NĂNG LƯỢNG VÀ CÔNG CƠ HỌC
+**Môn học:** Vật lí; **Lớp:** 10
+**Thời lượng thực hiện:** 02 tiết
+
+---
+
+### I. MỤC TIÊU
+#### 1. Về kiến thức:
+- Nêu được khái niệm năng lượng, công cơ học và điều kiện có công cơ học.
+- Viết được công thức tính công cơ học $A = F \\cdot s \\cdot \\cos(\\alpha)$, giải thích được các đại lượng và đơn vị đo Joule (J).
+- Phân tích được các trường hợp công phát động ($\\alpha < 90^\\circ$), công cản ($\\alpha > 90^\\circ$) và công triệt tiêu ($\\alpha = 90^\\circ$).
+
+#### 2. Về năng lực chung:
+- **Năng lực tự chủ và tự học:** Chủ động tra cứu, khai thác thông tin và tài liệu học tập số.
+- **Năng lực giao tiếp và hợp tác:** Làm việc nhóm hiệu quả, phân công nhiệm vụ rõ ràng khi thực hiện báo cáo số.
+- **Năng lực giải quyết vấn đề và sáng tạo:** Đề xuất được giải pháp tính toán và ứng dụng công cơ học trong thực tế.
+
+#### 3. Về năng lực số (NLS) và Năng lực AI:
+- **[Mã 1.1.NC1a]:** Khai thác dữ liệu & thông tin - Tìm kiếm, tra cứu tài liệu học tập và số liệu thực tế trên môi trường số.
+- **[Mã 3.1.NC1a]:** Sáng tạo nội dung số - Thiết kế sơ đồ tư duy hoặc infographic tổng hợp kiến thức bài học bằng công cụ số (Canva/Padlet).
+- **[Mã 5.3.NC1a]:** Giải quyết vấn đề - Ứng dụng công nghệ số và phần mềm mô phỏng để giải quyết bài toán vật lí.
+- **[NL AI: 10.A1.1]:** Tư duy lấy con người làm trung tâm - Xác định vai trò của con người trong việc kiểm soát, kiểm chứng thông tin từ hệ thống AI.
+- **[NL AI: 10.B2.MR1]:** Đạo đức AI - Kiểm tra tính chính xác và đối chiếu nội dung do AI tạo sinh với nguồn học liệu SGK chính thống.
+
+#### 4. Về phẩm chất:
+- Chăm chỉ, trách nhiệm, trung thực và liêm chính học thuật khi sử dụng công nghệ số và trí tuệ nhân tạo.
+
+---
+
+### II. THIẾT BỊ DẠY HỌC VÀ HỌC LIỆU
+- **Giáo viên:**
+  + Máy tính kết nối Internet, máy chiếu/Tivi tương tác.
+  + Kế hoạch bài dạy số, bài giảng điện tử (PowerPoint/Canva), video thí nghiệm lực thực hiện công.
+  + Đường link không gian học tập số Padlet và phiếu bài tập tương tác trên Google Forms/Quizizz.
+  + Câu lệnh gợi ý (Prompt mẫu) hướng dẫn học sinh sử dụng công cụ AI (Gemini/ChatGPT) để tra cứu mở rộng có định hướng.
+- **Học sinh:**
+  + SGK Vật lí 10, vở ghi, đồ dùng học tập.
+  + Điện thoại thông minh hoặc máy tính bảng kết nối Internet (theo nhóm học tập).
+
+---
+
+### III. TIẾN TRÌNH DẠY HỌC
+
+| Hoạt động của giáo viên và học sinh | Dự kiến sản phẩm |
+| :--- | :--- |
+| **HOẠT ĐỘNG 1: MỞ ĐẦU (KHỞI ĐỘNG) (10 phút)**<br><br>**Bước 1: Chuyển giao nhiệm vụ**<br>+ GV: Chiếu hình ảnh các trường hợp tác dụng lực trong đời sống (người đẩy xe hàng, lực sĩ nâng tạ, vệ tinh quay quanh Trái Đất).<br><br>![Hình 1. Thí nghiệm người kéo xe và nâng vật thực hiện công](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAAB4CAYAAADWq7Z4AAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAAPSURBVHic7cEBDQAAAMKg909tDwcUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgDcbSAABbZk2sQAAAABJRU5ErkJggg==)<br><br>👉 **Hoạt động của GV:** Hướng dẫn HS truy cập đường link bảng tương tác Padlet của lớp để gửi nhanh nhận định: Trong các trường hợp trên, trường hợp nào lực tác dụng đã sinh công? [Mã 1.1.NC1a]<br>👉 **Hoạt động của HS:** Sử dụng thiết bị số quét mã QR để vào link Padlet, quan sát hình ảnh và chuẩn bị câu trả lời.<br><br>**Bước 2: Thực hiện nhiệm vụ**<br>+ HS: Làm việc cá nhân trong 2 phút, suy nghĩ và nhập câu trả lời lên Padlet.<br>👉 **Hoạt động của HS:** Thao tác trên điện thoại/máy tính gửi ý kiến lên không gian số chung [Mã 2.1.NC1a].<br>👉 **Hoạt động của GV:** Theo dõi màn hình Padlet thời gian thực, tổng hợp các luồng ý kiến khác nhau của học sinh.<br><br>**Bước 3: Báo cáo, thảo luận**<br>+ GV: Mời 2 học sinh có nhận định khác nhau trình bày lí do vì sao chọn hoặc không chọn.<br>+ HS: Trình bày và đối chiếu ý kiến với các bạn trong lớp.<br><br>**Bước 4: Kết luận, nhận định**<br>+ GV: Nhận xét câu trả lời, dẫn dắt vào bài mới: Để biết chính xác khi nào một lực thực hiện công và độ lớn của công tính như thế nào, chúng ta cùng nghiên cứu Bài 15. | **Sản phẩm của Hoạt động 1:**<br>- Câu trả lời của học sinh trên bảng tương tác Padlet.<br>- Nhận thức ban đầu: Để sinh công cơ học, lực phải làm cho vật chuyển dời theo một hướng xác định. |
+| **HOẠT ĐỘNG 2: HÌNH THÀNH KIẾN THỨC MỚI (45 phút)**<br><br>**1. Khái niệm công cơ học và công thức tính công**<br><br>**Bước 1: Chuyển giao nhiệm vụ**<br>+ GV: Yêu cầu học sinh đọc mục I trong SGK, kết hợp quan sát sơ đồ phân tích lực khi kéo vật chuyển dời trên mặt phẳng ngang.<br><br>![Hình 2. Sơ đồ phân tích lực kéo F hợp với hướng chuyển dời góc alpha](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAAB4CAYAAADWq7Z4AAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAAPSURBVHic7cEBDQAAAMKg909tDwcUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgDcbSAABbZk2sQAAAABJRU5ErkJggg==)<br><br>👉 **Hoạt động của GV:**<br>- Giao nhiệm vụ cho các nhóm: Sử dụng công cụ AI (Gemini/ChatGPT) với câu lệnh gợi ý (Prompt): *"Giải thích ý nghĩa vật lí của góc alpha trong công thức tính công cơ học A = F.s.cos(alpha) khi alpha nhọn, vuông và tù. Nêu ví dụ thực tế minh họa."* [NL AI: 10.A1.1]<br>- Nhắc nhở HS: Cần đối chiếu kỹ thông tin AI phản hồi với nội dung mục I trong SGK để xác nhận tính chính xác [NL AI: 10.B2.MR1].<br>👉 **Hoạt động của HS:** Đại diện các nhóm tiếp nhận nhiệm vụ, mở ứng dụng AI và nhập câu lệnh gợi ý theo hướng dẫn của GV.<br><br>**Bước 2: Thực hiện nhiệm vụ**<br>+ HS: Làm việc theo nhóm 4 học sinh, thảo luận và ghi kết quả vào phiếu học tập số.<br>👉 **Hoạt động của HS:**<br>- Nhập lệnh vào AI, đọc câu trả lời và ghi chú các ý chính [Mã 1.1.NC1a].<br>- Đối chiếu kết quả của AI với định nghĩa trong SGK: chỉ ra điểm AI giải thích rõ và phát hiện các điểm cần diễn đạt chuẩn xác theo thuật ngữ SGK [Mã 6.3.NC1a] [NL AI: 10.B2.MR1].<br>- Tổng hợp bảng phân loại các trường hợp của công (công phát động, công cản, công triệt tiêu) vào slide báo cáo nhóm trên Canva [Mã 3.1.NC1a] [Mã 5.3.NC1a].<br>👉 **Hoạt động của GV:** Quan sát các nhóm làm việc, hướng dẫn HS cách tinh chỉnh câu lệnh khi kết quả AI đưa ra chưa rõ ràng; giám sát việc sử dụng thiết bị đúng mục đích học tập.<br><br>**Bước 3: Báo cáo, thảo luận**<br>+ HS: Đại diện Nhóm 1 chiếu slide báo cáo; Nhóm 2 phản biện; các nhóm khác nhận xét.<br>👉 **Hoạt động của GV:** Điều hành phần thảo luận, hướng dẫn học sinh nhận xét không chỉ về kiến thức Vật lí mà còn về việc chọn lọc thông tin thông minh từ AI.<br><br>**Bước 4: Kết luận, nhận định**<br>+ GV: Chuẩn hóa kiến thức:<br>  - Công thức: $A = F \\cdot s \\cdot \\cos(\\alpha)$. Đơn vị: $1\\text{ J} = 1\\text{ N} \\cdot 1\\text{ m}$.<br>  - Khi $0^\\circ \\le \\alpha < 90^\\circ \\Rightarrow \\cos(\\alpha) > 0 \\Rightarrow A > 0$: Công phát động.<br>  - Khi $\\alpha = 90^\\circ \\Rightarrow \\cos(\\alpha) = 0 \\Rightarrow A = 0$: Lực không sinh công.<br>  - Khi $90^\\circ < \\alpha \\le 180^\\circ \\Rightarrow \\cos(\\alpha) < 0 \\Rightarrow A < 0$: Công cản.<br>+ HS: Ghi chép nội dung chuẩn hóa vào vở học tập. | **Sản phẩm của Hoạt động 2:**<br>- Bảng phân tích các trường hợp của công cơ học của các nhóm.<br>- Slide báo cáo số trên Canva hoặc file tóm tắt của nhóm.<br>- Ghi nhớ kiến thức chuẩn hóa:<br>  + Công thức tính công: $A = F \\cdot s \\cdot \\cos(\\alpha)$.<br>  + Đơn vị đo công trong hệ SI: Joule (J).<br>  + Ý nghĩa dấu của công: $A > 0$ (phát động), $A < 0$ (cản), $A = 0$ (không sinh công). |
+| **HOẠT ĐỘNG 3: LUYỆN TẬP (20 phút)**<br><br>**Bước 1: Chuyển giao nhiệm vụ**<br>+ GV: Giao hệ thống 5 câu hỏi trắc nghiệm và 1 bài tập tự luận tính công cơ học:<br>  *Bài toán:* Một người kéo một hòm gỗ khối lượng $m = 20\\text{ kg}$ trượt đều trên sàn nhà bằng một sợi dây hợp với phương ngang một góc $\\alpha = 30^\\circ$. Lực kéo $F = 50\\text{ N}$. Tính công của lực kéo và công của lực ma sát khi hòm trượt được quãng đường $s = 10\\text{ m}$. Cho hệ số ma sát $\\mu = 0,2$ và $g = 9,8\\text{ m/s}^2$.<br>👉 **Hoạt động của GV:** Cung cấp mã bài kiểm tra trên hệ thống Quizizz/Google Forms để học sinh làm bài cá nhân và chấm điểm tự động [Mã 1.1.NC1a].<br>👉 **Hoạt động của HS:** Truy cập hệ thống bài tập trực tuyến bằng điện thoại/máy tính cá nhân.<br><br>**Bước 2: Thực hiện nhiệm vụ**<br>+ HS: Làm bài trắc nghiệm trực tuyến trong 7 phút, sau đó giải bài tập tự luận ra vở nháp.<br>👉 **Hoạt động của HS:** Giải bài và nộp kết quả trực tiếp trên hệ thống khảo sát số.<br>👉 **Hoạt động của GV:** Theo dõi bảng thống kê thời gian thực của Quizizz, xác định ngay các câu hỏi có tỉ lệ sai cao để hỗ trợ chữa bài kịp thời.<br><br>**Bước 3: Báo cáo, thảo luận**<br>+ GV: Chiếu bảng phân tích kết quả bài tập của cả lớp, gọi học sinh giải thích các câu hỏi hay nhầm lẫn.<br>+ HS: Trao đổi về cách giải bài toán tự luận: xác định góc $\\alpha$ giữa lực ma sát và hướng chuyển động ($\\alpha = 180^\\circ \\Rightarrow \\cos(180^\\circ) = -1$).<br><br>**Bước 4: Kết luận, nhận định**<br>+ GV: Chốt phương pháp giải bài tập tính công: Bắt buộc vẽ hình, xác định phương chiều của lực và hướng chuyển dời, xác định chính xác góc $\\alpha$. | **Sản phẩm của Hoạt động 3:**<br>- Kết quả bài kiểm tra trắc nghiệm số trên Quizizz của học sinh.<br>- Lời giải bài tập tự luận:<br>  + Công của lực kéo: $A_F = F \\cdot s \\cdot \\cos(30^\\circ) = 50 \\cdot 10 \\cdot \\frac{\\sqrt{3}}{2} \\approx 433\\text{ J}$.<br>  + Công của lực ma sát: $A_{ms} = F_{ms} \\cdot s \\cdot \\cos(180^\\circ) = -\\mu \\cdot N \\cdot s = -343\\text{ J}$. |
+| **HOẠT ĐỘNG 4: VẬN DỤNG, TÌM TÒI MỞ RỘNG (15 phút)**<br><br>**Bước 1: Chuyển giao nhiệm vụ**<br>+ GV: Đặt vấn đề thực tiễn: "Tại sao khi leo dốc bằng xe đạp hoặc đi bộ, người ta thường đi theo đường ngoằn ngoèo (đường đèo chữ chi) thay vì đi thẳng dốc? Công thực hiện trong hai trường hợp có khác nhau không?"<br>👉 **Hoạt động của GV:** Hướng dẫn HS về nhà thiết kế 1 infographic hoặc bài trình bày ngắn (trên Canva hoặc Google Slides) giải thích hiện tượng trên dựa vào kiến thức công và lực, nộp sản phẩm vào thư mục Google Drive của lớp [Mã 3.1.NC1a] [Mã 5.3.NC1a].<br>👉 **Hoạt động của HS:** Nhận nhiệm vụ dự án học tập nhỏ, lưu liên kết nộp bài về thiết bị.<br><br>**Bước 2: Thực hiện nhiệm vụ**<br>+ HS: Thực hiện nhiệm vụ tại nhà theo nhóm 2 - 3 học sinh.<br>👉 **Hoạt động của HS:** Khai thác tài liệu số, áp dụng công cụ thiết kế số để tạo sản phẩm học tập [Mã 3.1.NC1a].<br><br>**Bước 3: Báo cáo, đánh giá**<br>+ HS: Nộp sản phẩm qua link Google Drive trước buổi học tiếp theo.<br>+ GV: Nhận xét và chấm điểm sản phẩm số vào đầu tiết học sau. | **Sản phẩm của Hoạt động 4:**<br>- Sản phẩm infographic/slide của các nhóm nộp qua liên kết số.<br>- Lời giải thích khoa học: Đi đường ngoằn ngoèo làm giảm góc nghiêng, giảm lực cản trọng lực tác dụng ngược chiều dốc, dù quãng đường $s$ tăng nhưng lực $F$ cần tác dụng nhỏ hơn, giúp người đạp xe đỡ mệt hơn (quy tắc bảo toàn công của máy cơ đơn giản). |
+`;
+
+export const DEFAULT_LESSON_PLAN = SAMPLE_LESSON_PLAN;
