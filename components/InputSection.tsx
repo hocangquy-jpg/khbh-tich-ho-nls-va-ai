@@ -202,6 +202,10 @@ export const InputSection: React.FC<InputSectionProps> = ({
           newTextContent = newTextContent ? `${newTextContent}\n\n${res.content}` : res.content;
         } else if (res.type === 'media') {
           newMediaItems.push(res.data);
+          if (res.data.mimeType && res.data.mimeType.startsWith('image/')) {
+            const imgMarkdown = `\n\n![${res.data.name || 'Hình ảnh đính kèm'}](data:${res.data.mimeType};base64,${res.data.data})\n\n`;
+            newTextContent = newTextContent ? `${newTextContent}${imgMarkdown}` : imgMarkdown;
+          }
         }
       });
 

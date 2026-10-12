@@ -22,12 +22,30 @@ const cleanText = (text: string) => {
 
 // Cleanly format chemistry isotopes, formulas, subscripts, superscripts and reaction arrows
 export const formatChemistryAndMath = (text: string): string => {
-  // Protect markdown images and data:image URIs so that math/chemistry regex does not mangle base64 strings
+  if (!text) return "";
+  // Protect markdown images, HTML img tags, data:image URIs and image tokens
+  // CRITICAL: Token must NEVER contain underscores or math characters (like _, ^, $, -, +)
+  // because chemistry superscript/subscript converters would convert _0 to ₀ and break the restoration!
   const protectedImages: string[] = [];
-  const safeText = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (fullMatch) => {
+  let safeText = text.replace(/<img\s+[^>]*src=["']([^"']+)["'][^>]*>/gi, (fullMatch) => {
     const idx = protectedImages.length;
     protectedImages.push(fullMatch);
-    return `###IMG_PRESERVED_${idx}###`;
+    return `@@@IMGTOKEN${idx}@@@`;
+  });
+  safeText = safeText.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (fullMatch) => {
+    const idx = protectedImages.length;
+    protectedImages.push(fullMatch);
+    return `@@@IMGTOKEN${idx}@@@`;
+  });
+  safeText = safeText.replace(/data:image\/[^\s"'<>)]+/gi, (fullMatch) => {
+    const idx = protectedImages.length;
+    protectedImages.push(fullMatch);
+    return `@@@IMGTOKEN${idx}@@@`;
+  });
+  safeText = safeText.replace(/__DOCX_IMG_PRESERVED_\d+__/gi, (fullMatch) => {
+    const idx = protectedImages.length;
+    protectedImages.push(fullMatch);
+    return `@@@IMGTOKEN${idx}@@@`;
   });
 
   const supMap: Record<string, string> = { "0":"⁰","1":"¹","2":"²","3":"³","4":"⁴","5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹","+":"⁺","-":"⁻","n":"ⁿ","m":"ᵐ" };
@@ -52,8 +70,8 @@ export const formatChemistryAndMath = (text: string): string => {
     .replace(/_([0-9+-]+)/g, (_, sub) => toSub(sub))
     .replace(/\$/g, '');
 
-  // Restore protected images
-  processed = processed.replace(/###IMG_PRESERVED_(\d+)###/g, (_, idx) => {
+  // Restore protected images using a callback function so '$' in image data is never treated as replacement pattern
+  processed = processed.replace(/@@@IMGTOKEN(\d+)@@@/g, (_, idx) => {
     return protectedImages[Number(idx)] || '';
   });
 
@@ -150,8 +168,15 @@ export const normalizeHeadingsHierarchy = (text: string): string => {
 
   for (const rawLine of lines) {
     const trimmed = rawLine.trim();
-    // Do not split inside markdown table rows or image lines
-    if (trimmed.startsWith('|') || /^!\[[^\]]*\]\(data:image\//.test(trimmed)) {
+    // Do not alter or split inside markdown table rows or lines containing images/base64
+    if (
+      trimmed.startsWith('|') || 
+      trimmed.includes('data:image/') || 
+      trimmed.includes(';base64,') || 
+      trimmed.includes('__DOCX_IMG_PRESERVED_') || 
+      trimmed.includes('<img') || 
+      /!\[[^\]]*\]\(/.test(trimmed)
+    ) {
       result.push(rawLine);
       continue;
     }
@@ -302,8 +327,8 @@ const FormattedDocumentViewer: React.FC<{
           result.push({ type: 'step', content: clean });
         } else if (/^[•\-\*\+]\s+/.test(line)) {
           result.push({ type: 'bullet', content: clean });
-        } else if (/^!\[([^\]]*)\]\((data:image\/[^)\s]+|https?:\/\/[^)\s]+)\)/.test(line)) {
-          const imgMatch = line.match(/^!\[([^\]]*)\]\((data:image\/[^)\s]+|https?:\/\/[^)\s]+)\)/);
+        } else if (/!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^\)\s]+)\)/i.test(line)) {
+          const imgMatch = line.match(/!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^\)\s]+)\)/i);
           if (imgMatch) {
             result.push({ type: 'image' as any, content: imgMatch[2], alt: imgMatch[1] } as any);
           } else {
@@ -321,12 +346,28 @@ const FormattedDocumentViewer: React.FC<{
 
   // Helper to highlight competency codes & AI keywords with math & chemical formula support
   const renderHighlightedText = (rawText: string) => {
-    const formatted = formatChemistryAndMath(rawText);
-    let cleanWithLineBreaks = formatted
+    // 1. Convert any HTML img tags first to markdown
+    let prepared = rawText.replace(/<img\s+[^>]*src=["']([^"']+)["'][^>]*>/gi, (m, src) => {
+      const altMatch = m.match(/alt=["']([^"']*)["']/i);
+      const alt = altMatch ? altMatch[1] : 'Hình ảnh';
+      return `\n\n![${alt}](${src})\n\n`;
+    });
+
+    // 2. Clean HTML line breaks and divs to real newlines FIRST
+    let cleanWithLineBreaks = prepared
       .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<\/div>/gi, '\n')
+      .replace(/<p\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n')
       .replace(/&nbsp;/g, ' ')
       .replace(/&amp;/g, '&');
+
+    // 3. Separate markdown images onto their own lines using callback functions to prevent regex string substitution collisions
+    cleanWithLineBreaks = cleanWithLineBreaks
+      .replace(/([^\n])\s*(!\[[^\]]*\]\((?:data:image\/[^)]+|https?:\/\/[^\)\s]+)\))/gi, (_, p1, p2) => p1 + '\n' + p2)
+      .replace(/(!\[[^\]]*\]\((?:data:image\/[^)]+|https?:\/\/[^\)\s]+)\))\s*([^\n])/gi, (_, p1, p2) => p1 + '\n' + p2);
+
+    cleanWithLineBreaks = formatChemistryAndMath(cleanWithLineBreaks);
     
     // Intelligently break before steps, GV/HS, integrated tasks and subsections inside cells if merged on one line
     cleanWithLineBreaks = cleanWithLineBreaks
@@ -340,7 +381,7 @@ const FormattedDocumentViewer: React.FC<{
 
     return lines.map((line, lIdx) => {
       // Check if line is an embedded markdown image
-      const inlineImgMatch = line.match(/^!\[([^\]]*)\]\((data:image\/[^)\s]+|https?:\/\/[^)\s]+)\)$/);
+      const inlineImgMatch = line.match(/^!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^\)\s]+)\)$/i);
       if (inlineImgMatch) {
         return (
           <div key={lIdx} className="my-3 flex flex-col items-center justify-center p-2 bg-slate-50/90 rounded-xl border border-slate-200">
@@ -349,7 +390,7 @@ const FormattedDocumentViewer: React.FC<{
               alt={inlineImgMatch[1] || 'Hình ảnh'} 
               className="max-h-60 w-auto object-contain rounded shadow-xs"
             />
-            {inlineImgMatch[1] && inlineImgMatch[1].trim() && !/^hình ảnh$/i.test(inlineImgMatch[1].trim()) && (
+            {inlineImgMatch[1] && inlineImgMatch[1].trim() && !/^(hình ảnh|image|ảnh|photo|figure)$/i.test(inlineImgMatch[1].trim()) && (
               <span className="mt-1 text-[11px] italic text-slate-500 font-medium text-center">
                 {inlineImgMatch[1]}
               </span>
@@ -701,15 +742,104 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
         Footer, PageNumber, ImageRun
       } = await import('docx');
 
+      // Pre-fetch any external web images (https/http) to embed directly into Word docx
+      const imageBytesCache = new Map<string, Uint8Array>();
+      const webImgMatches = data.fullPlanContent.match(/https?:\/\/[^\s"')]+/g) || [];
+      if (webImgMatches.length > 0) {
+        await Promise.all(
+          Array.from<string>(new Set(webImgMatches)).map(async (url: string) => {
+            try {
+              const resp = await fetch(url);
+              if (resp.ok) {
+                const ab = await resp.arrayBuffer();
+                imageBytesCache.set(url, new Uint8Array(ab));
+              }
+            } catch (_) {}
+          })
+        );
+      }
+
+      // Fast dimension measuring helper for crisp proportional image scaling
+      const getImageDimensions = (src: string): Promise<{ width: number; height: number }> => {
+        return new Promise((resolve) => {
+          if (typeof Image === 'undefined') {
+            return resolve({ width: 380, height: 240 });
+          }
+          const img = new Image();
+          const timer = setTimeout(() => {
+            resolve({ width: 380, height: 240 });
+          }, 350);
+          img.onload = () => {
+            clearTimeout(timer);
+            resolve({ width: img.naturalWidth || 380, height: img.naturalHeight || 240 });
+          };
+          img.onerror = () => {
+            clearTimeout(timer);
+            resolve({ width: 380, height: 240 });
+          };
+          img.src = src;
+        });
+      };
+
+      const dimensionsCache = new Map<string, { width: number; height: number }>();
+      const allDataUris = data.fullPlanContent.match(/data:image\/[^)]+/g) || [];
+      if (allDataUris.length > 0) {
+        await Promise.all(
+          Array.from<string>(new Set(allDataUris)).map(async (uri: string) => {
+            try {
+              const dims = await getImageDimensions(uri);
+              dimensionsCache.set(uri, dims);
+            } catch (_) {}
+          })
+        );
+      }
+
       const createDocxImageRuns = (dataUri: string, altText?: string, maxW = 380, maxH = 240) => {
         try {
-          const commaIdx = dataUri.indexOf(',');
-          const base64Data = (commaIdx !== -1 ? dataUri.substring(commaIdx + 1) : dataUri).replace(/\s/g, '');
-          const binaryStr = atob(base64Data);
-          const bytes = new Uint8Array(binaryStr.length);
-          for (let i = 0; i < binaryStr.length; i++) {
-            bytes[i] = binaryStr.charCodeAt(i);
+          if (!dataUri) return null;
+          let bytes: Uint8Array | null = null;
+          const cleanUri = dataUri.trim().replace(/^['"]|['"]$/g, '');
+
+          if (imageBytesCache.has(cleanUri)) {
+            bytes = imageBytesCache.get(cleanUri)!;
+          } else if (cleanUri.startsWith('data:')) {
+            const commaIdx = cleanUri.indexOf(',');
+            if (commaIdx !== -1) {
+              let base64Data = cleanUri.substring(commaIdx + 1).replace(/\s/g, '');
+              if (base64Data.includes('%')) {
+                try { base64Data = decodeURIComponent(base64Data); } catch (_) {}
+              }
+              while (base64Data.length % 4 !== 0) {
+                base64Data += '=';
+              }
+              try {
+                const binaryStr = atob(base64Data);
+                bytes = new Uint8Array(binaryStr.length);
+                for (let i = 0; i < binaryStr.length; i++) {
+                  bytes[i] = binaryStr.charCodeAt(i);
+                }
+              } catch (atobErr) {
+                if (typeof Buffer !== 'undefined') {
+                  bytes = new Uint8Array(Buffer.from(base64Data, 'base64'));
+                }
+              }
+            }
           }
+
+          if (!bytes || bytes.length === 0) {
+            return null;
+          }
+
+          // Calculate scaled dimensions preserving natural aspect ratio
+          let finalW = maxW;
+          let finalH = maxH;
+          const dims = dimensionsCache.get(cleanUri);
+          if (dims && dims.width > 0 && dims.height > 0) {
+            const scale = Math.min(maxW / dims.width, maxH / dims.height, 1);
+            finalW = Math.max(80, Math.round(dims.width * scale));
+            finalH = Math.max(50, Math.round(dims.height * scale));
+          }
+
           const paras: any[] = [
             new Paragraph({
               alignment: AlignmentType.CENTER,
@@ -717,12 +847,12 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
               children: [
                 new ImageRun({
                   data: bytes,
-                  transformation: { width: maxW, height: maxH }
+                  transformation: { width: finalW, height: finalH }
                 })
               ]
             })
           ];
-          if (altText && altText.trim() && !/^hình ảnh$/i.test(altText.trim())) {
+          if (altText && altText.trim() && !/^(hình ảnh|image|ảnh|photo|figure)$/i.test(altText.trim())) {
             paras.push(
               new Paragraph({
                 alignment: AlignmentType.CENTER,
@@ -731,7 +861,7 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
                   new TextRun({
                     text: altText.trim(),
                     italics: true,
-                    size: 20,
+                    size: 20, // 10pt
                     font: "Times New Roman",
                     color: "475569"
                   })
@@ -880,13 +1010,27 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
           })];
         }
 
-        // Clean HTML tags and apply chemistry/math formatting
-        let rawPrepared = cellRaw
+        // 1. Convert any HTML img tags to markdown images first so they are never lost
+        let rawPrepared = cellRaw.replace(/<img\s+[^>]*src=["']([^"']+)["'][^>]*>/gi, (m, src) => {
+          const altMatch = m.match(/alt=["']([^"']*)["']/i);
+          const alt = altMatch ? altMatch[1] : 'Hình ảnh';
+          return `\n\n![${alt}](${src})\n\n`;
+        });
+
+        // 2. Clean HTML line breaks and divs to real newlines FIRST before splitting
+        rawPrepared = rawPrepared
           .replace(/<br\s*\/?>/gi, '\n')
           .replace(/<\/div>/gi, '\n')
+          .replace(/<p\s*\/?>/gi, '\n')
+          .replace(/<\/p>/gi, '\n')
           .replace(/<[^>]+>/g, '')
           .replace(/&nbsp;/g, ' ')
           .replace(/&amp;/g, '&');
+
+        // 3. Separate markdown images onto their own lines using callback functions
+        rawPrepared = rawPrepared
+          .replace(/([^\n])\s*(!\[[^\]]*\]\((?:data:image\/[^)]+|https?:\/\/[^\)\s]+)\))/gi, (_, p1, p2) => p1 + '\n' + p2)
+          .replace(/(!\[[^\]]*\]\((?:data:image\/[^)]+|https?:\/\/[^\)\s]+)\))\s*([^\n])/gi, (_, p1, p2) => p1 + '\n' + p2);
 
         // Break before steps, GV/HS, subsections inside cells if merged on the same line
         rawPrepared = rawPrepared
@@ -908,10 +1052,27 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
 
         return cellLines.flatMap(rawLine => {
           // Check if line inside table cell is a markdown image
-          const cellImgMatch = rawLine.match(/^!\[([^\]]*)\]\((data:image\/[^)\s]+|https?:\/\/[^)\s]+)\)$/);
+          const cellImgMatch = rawLine.match(/^!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^\)\s]+)\)$/i);
           if (cellImgMatch) {
             const imgParas = createDocxImageRuns(cellImgMatch[2], cellImgMatch[1], 240, 160);
             if (imgParas && imgParas.length > 0) return imgParas;
+          }
+
+          // If line contains an embedded markdown image with surrounding text
+          if (!cellImgMatch && /!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^\)\s]+)\)/i.test(rawLine)) {
+            const inlineMatch = rawLine.match(/^(.*?)(!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^\)\s]+)\))(.*)$/i);
+            if (inlineMatch) {
+              const preText = inlineMatch[1].trim();
+              const alt = inlineMatch[3];
+              const src = inlineMatch[4];
+              const postText = inlineMatch[5].trim();
+              const paras: any[] = [];
+              if (preText) paras.push(...formatCellParagraphs(preText, isHeader, isCenterCol));
+              const imgP = createDocxImageRuns(src, alt, 240, 160);
+              if (imgP) paras.push(...imgP);
+              if (postText) paras.push(...formatCellParagraphs(postText, isHeader, isCenterCol));
+              if (paras.length > 0) return paras;
+            }
           }
 
           const runs: any[] = [];
@@ -1045,14 +1206,29 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
 
       // Function to parse a raw line outside tables into a beautifully formatted Word paragraph
       const formatBodyParagraph = (rawLine: string): any => {
-        const cleanContent = formatChemistryAndMath(
-          rawLine
-            .replace(/<br\s*\/?>/gi, '\n')
-            .replace(/<\/div>/gi, '\n')
-            .replace(/<[^>]+>/g, '')
-            .replace(/&nbsp;/g, ' ')
-            .replace(/&amp;/g, '&')
-        ).trim();
+        // 1. Convert any HTML img tags to markdown images first so they are never lost
+        let prepared = rawLine.replace(/<img\s+[^>]*src=["']([^"']+)["'][^>]*>/gi, (m, src) => {
+          const altMatch = m.match(/alt=["']([^"']*)["']/i);
+          const alt = altMatch ? altMatch[1] : 'Hình ảnh';
+          return `\n\n![${alt}](${src})\n\n`;
+        });
+
+        // 2. Clean HTML line breaks and divs to real newlines FIRST before splitting
+        prepared = prepared
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/<\/div>/gi, '\n')
+          .replace(/<p\s*\/?>/gi, '\n')
+          .replace(/<\/p>/gi, '\n')
+          .replace(/<[^>]+>/g, '')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&');
+
+        // 3. Separate markdown images onto their own lines using callback functions
+        prepared = prepared
+          .replace(/([^\n])\s*(!\[[^\]]*\]\((?:data:image\/[^)]+|https?:\/\/[^\)\s]+)\))/gi, (_, p1, p2) => p1 + '\n' + p2)
+          .replace(/(!\[[^\]]*\]\((?:data:image\/[^)]+|https?:\/\/[^\)\s]+)\))\s*([^\n])/gi, (_, p1, p2) => p1 + '\n' + p2);
+
+        const cleanContent = formatChemistryAndMath(prepared).trim();
 
         if (!cleanContent) {
           return null;
@@ -1073,10 +1249,33 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ data, onClear }) =
         }
 
         // Check if raw line is a markdown image
-        const bodyImgMatch = cleanContent.match(/^!\[([^\]]*)\]\((data:image\/[^)\s]+|https?:\/\/[^)\s]+)\)$/);
+        const bodyImgMatch = cleanContent.match(/^!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^\)\s]+)\)$/i);
         if (bodyImgMatch) {
-          const imgParas = createDocxImageRuns(bodyImgMatch[2], bodyImgMatch[1], 380, 240);
+          const imgParas = createDocxImageRuns(bodyImgMatch[2], bodyImgMatch[1], 400, 260);
           if (imgParas) return imgParas;
+        }
+
+        // If line contains an embedded markdown image with surrounding text
+        if (!bodyImgMatch && /!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^\)\s]+)\)/i.test(cleanContent)) {
+          const inlineMatch = cleanContent.match(/^(.*?)(!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^\)\s]+)\))(.*)$/i);
+          if (inlineMatch) {
+            const preText = inlineMatch[1].trim();
+            const alt = inlineMatch[3];
+            const src = inlineMatch[4];
+            const postText = inlineMatch[5].trim();
+            const paras: any[] = [];
+            if (preText) {
+              const p = formatBodyParagraph(preText);
+              if (p) { if (Array.isArray(p)) paras.push(...p); else paras.push(p); }
+            }
+            const imgParas = createDocxImageRuns(src, alt, 400, 260);
+            if (imgParas) paras.push(...imgParas);
+            if (postText) {
+              const p = formatBodyParagraph(postText);
+              if (p) { if (Array.isArray(p)) paras.push(...p); else paras.push(p); }
+            }
+            if (paras.length > 0) return paras;
+          }
         }
 
         const cleanNoMd = cleanText(cleanContent);

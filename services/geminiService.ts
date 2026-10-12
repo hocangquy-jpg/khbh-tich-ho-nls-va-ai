@@ -36,18 +36,29 @@ export const generateEnhancedLessonPlan = async (
   // Determine human-readable activity target instruction
   let activityScopeText = "";
   let targetActivityName = "";
-  const subTarget = specificSubActivity?.trim();
+  const subTargetList = specificSubActivity 
+    ? specificSubActivity.split('\n').map(s => s.trim()).filter(Boolean) 
+    : [];
+  const subTarget = subTargetList.join('; ');
 
   if (targetActivity === 'act1') {
     targetActivityName = "Hoạt động 1: Mở đầu (Khởi động)";
     activityScopeText = "CHỈ TÍCH HỢP VÀO HOẠT ĐỘNG 1 (MỞ ĐẦU / KHỞI ĐỘNG). TUYỆT ĐỐI BẢO LƯU NGUYÊN BẢN 100% HOẠT ĐỘNG 2, HOẠT ĐỘNG 3, HOẠT ĐỘNG 4 (KHÔNG TÍCH HỢP, KHÔNG CHÈN 👉 VÀO HOẠT ĐỘNG 2, 3, 4)!";
   } else if (targetActivity === 'act2') {
     targetActivityName = "Hoạt động 2: Hình thành kiến thức mới";
-    if (subTarget) {
-      activityScopeText = `CHỈ TÍCH HỢP VÀO ĐÚNG TIỂU HOẠT ĐỘNG: "${subTarget}" TRONG HOẠT ĐỘNG 2 (HÌNH THÀNH KIẾN THỨC MỚI).
-👉 QUY TẮC BẮT BUỘC TỪ GIÁO VIÊN: Hoạt động hình thành kiến thức gồm rất nhiều hoạt động con. Giáo viên đã chỉ định cụ thể: "${subTarget}".
-👉 BẠN CHỈ ĐƯỢC PHÉP TÍCH HỢP NLS VÀ NLAI VÀO DUY NHẤT HOẠT ĐỘNG CON "${subTarget}"!
+    if (subTargetList.length === 1) {
+      activityScopeText = `CHỈ TÍCH HỢP VÀO ĐÚNG TIỂU HOẠT ĐỘNG: "${subTargetList[0]}" TRONG HOẠT ĐỘNG 2 (HÌNH THÀNH KIẾN THỨC MỚI).
+👉 QUY TẮC BẮT BUỘC TỪ GIÁO VIÊN: Hoạt động hình thành kiến thức gồm rất nhiều hoạt động con. Giáo viên đã chỉ định cụ thể: "${subTargetList[0]}".
+👉 BẠN CHỈ ĐƯỢC PHÉP TÍCH HỢP NLS VÀ NLAI VÀO DUY NHẤT HOẠT ĐỘNG CON "${subTargetList[0]}"!
 👉 TUYỆT ĐỐI KHÔNG TÍCH HỢP VÀO TẤT CẢ CÁC HOẠT ĐỘNG CON CÒN LẠI CỦA PHẦN HÌNH THÀNH KIẾN THỨC (ví dụ: các hoạt động con khác như 2.2, 2.3, 2.4... phải giữ nguyên 100%, không chèn NLS/NLAI)!
+👉 ĐỒNG THỜI BẢO LƯU NGUYÊN BẢN 100% HOẠT ĐỘNG 1, HOẠT ĐỘNG 3, HOẠT ĐỘNG 4!`;
+    } else if (subTargetList.length > 1) {
+      const formattedList = subTargetList.map((st, i) => `   (${i + 1}) "${st}"`).join('\n');
+      activityScopeText = `CHỈ TÍCH HỢP VÀO ĐÚNG ${subTargetList.length} TIỂU HOẠT ĐỘNG CON ĐÃ ĐƯỢC GIÁO VIÊN CHỈ ĐỊNH DƯỚI ĐÂY TRONG HOẠT ĐỘNG 2 (HÌNH THÀNH KIẾN THỨC MỚI):
+${formattedList}
+👉 QUY TẮC BẮT BUỘC TỪ GIÁO VIÊN: Hoạt động hình thành kiến thức gồm rất nhiều hoạt động con. Giáo viên đã chỉ định cụ thể danh sách ${subTargetList.length} hoạt động con ở trên.
+👉 BẠN CHỈ ĐƯỢC PHÉP TÍCH HỢP NLS VÀ NLAI VÀO ĐÚNG CÁC HOẠT ĐỘNG CON TRONG DANH SÁCH ĐƯỢC CHỈ ĐỊNH NÀY!
+👉 TUYỆT ĐỐI KHÔNG TÍCH HỢP VÀO BẤT KỲ HOẠT ĐỘNG CON NÀO KHÁC TRONG PHẦN HÌNH THÀNH KIẾN THỨC (tất cả các hoạt động con khác phải giữ nguyên 100%, không chèn NLS/NLAI)!
 👉 ĐỒNG THỜI BẢO LƯU NGUYÊN BẢN 100% HOẠT ĐỘNG 1, HOẠT ĐỘNG 3, HOẠT ĐỘNG 4!`;
     } else {
       activityScopeText = `CHỈ TÍCH HỢP VÀO 01 HOẠT ĐỘNG CON MÀ GIÁO VIÊN NHẬP HOẶC CHỈ ĐỊNH TRONG PHẦN HÌNH THÀNH KIẾN THỨC MỚI.
@@ -76,36 +87,38 @@ export const generateEnhancedLessonPlan = async (
   let imageCounter = 0;
   let textForAi = input.text || '';
 
-  // 1. Matches markdown images: ![alt](data:image/... or http...)
+  // 1. Matches HTML img tags: <img ... src="..." ...>
   textForAi = textForAi.replace(
-    /!\[([^\]]*)\]\((data:image\/[a-zA-Z0-9\+\/\=;:,]+|https?:\/\/[^\)\s]+)\)/gi,
-    (_, alt, src) => {
+    /<img\s+[^>]*src=["']([^"']+)["'][^>]*>/gi,
+    (m, src) => {
+      const altMatch = m.match(/alt=["']([^"']*)["']/i);
+      const alt = altMatch ? altMatch[1] : 'Hình ảnh';
       imageCounter++;
       const token = `__DOCX_IMG_PRESERVED_${imageCounter}__`;
-      imageMap.set(token, src);
-      return `![${alt || 'Hình ảnh'}](${token})`;
+      imageMap.set(token, src.trim());
+      return `![${alt}](${token})`;
     }
   );
 
-  // 2. Matches HTML img tags: <img src="data:image/..." ...>
+  // 2. Matches markdown images: ![alt](data:image/... or http...)
   textForAi = textForAi.replace(
-    /<img\s+[^>]*src=["'](data:image\/[a-zA-Z0-9\+\/\=;:,]+)["'][^>]*>/gi,
-    (_, src) => {
+    /!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^\)\s]+)\)/gi,
+    (_, alt, src) => {
       imageCounter++;
       const token = `__DOCX_IMG_PRESERVED_${imageCounter}__`;
-      imageMap.set(token, src);
-      return `![Hình ảnh](${token})`;
+      imageMap.set(token, src.trim());
+      return `![${alt || 'Hình ảnh'}](${token})`;
     }
   );
 
   // 3. Matches raw leftover long data:image URIs
   textForAi = textForAi.replace(
-    /(data:image\/[a-zA-Z0-9\+\/\=;:,]{50,})/gi,
+    /(data:image\/[^\s"'<>)]+)/gi,
     (src) => {
       imageCounter++;
       const token = `__DOCX_IMG_PRESERVED_${imageCounter}__`;
-      imageMap.set(token, src);
-      return token;
+      imageMap.set(token, src.trim());
+      return `![Hình ảnh](${token})`;
     }
   );
 
@@ -430,13 +443,49 @@ ${textForAi ? `\nNội dung văn bản / Giáo án gốc:\n${textForAi}` : ''}`;
   if (parsedResponse && parsedResponse.fullPlanContent && imageMap.size > 0) {
     let restoredContent = parsedResponse.fullPlanContent;
     for (const [token, originalSrc] of imageMap.entries()) {
-      restoredContent = restoredContent.replaceAll(token, originalSrc);
-      // Also handle cases if AI stripped leading/trailing underscores: DOCX_IMG_PRESERVED_1
+      let cleanSrc = originalSrc;
+      if (cleanSrc.startsWith('data:')) {
+        const cIdx = cleanSrc.indexOf(',');
+        if (cIdx !== -1) {
+          cleanSrc = cleanSrc.substring(0, cIdx + 1) + cleanSrc.substring(cIdx + 1).replace(/\s/g, '');
+        }
+      }
+
+      restoredContent = restoredContent.replaceAll(token, cleanSrc);
+
       const stripped = token.replace(/^_+|_+$/g, '');
       if (restoredContent.includes(stripped)) {
-        restoredContent = restoredContent.replaceAll(stripped, originalSrc);
+        restoredContent = restoredContent.replaceAll(stripped, cleanSrc);
+      }
+
+      // Case-insensitive replacement in case AI changed casing:
+      try {
+        const ciRegex = new RegExp(token.replace(/_/g, '_?'), 'gi');
+        restoredContent = restoredContent.replace(ciRegex, cleanSrc);
+      } catch (_) {}
+    }
+
+    // Safety guarantee: If any images from the original lesson plan were omitted by AI, restore them safely
+    for (const [token, originalSrc] of imageMap.entries()) {
+      let cleanSrc = originalSrc;
+      if (cleanSrc.startsWith('data:')) {
+        const cIdx = cleanSrc.indexOf(',');
+        if (cIdx !== -1) {
+          cleanSrc = cleanSrc.substring(0, cIdx + 1) + cleanSrc.substring(cIdx + 1).replace(/\s/g, '');
+        }
+      }
+      if (!restoredContent.includes(cleanSrc)) {
+        const imgMarkdown = `\n\n![Hình ảnh minh họa](${cleanSrc})\n\n`;
+        if (restoredContent.includes('HOẠT ĐỘNG 2') || restoredContent.includes('Hoạt động 2')) {
+          restoredContent = restoredContent.replace(/(HOẠT ĐỘNG\s+2[^\n]*|Hoạt động\s+2[^\n]*)/i, `$1${imgMarkdown}`);
+        } else if (restoredContent.includes('HOẠT ĐỘNG 1') || restoredContent.includes('Hoạt động 1')) {
+          restoredContent = restoredContent.replace(/(HOẠT ĐỘNG\s+1[^\n]*|Hoạt động\s+1[^\n]*)/i, `$1${imgMarkdown}`);
+        } else {
+          restoredContent += imgMarkdown;
+        }
       }
     }
+
     parsedResponse.fullPlanContent = restoredContent;
   }
 

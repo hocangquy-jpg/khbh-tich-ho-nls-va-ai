@@ -163,56 +163,117 @@ export const ActivitySelector: React.FC<ActivitySelectorProps> = ({
             👉 <span className="font-black text-red-600">Quy tắc quan trọng:</span> Hoạt động Hình thành kiến thức mới thường gồm nhiều hoạt động con (2.1, 2.2, 2.3, 2.4...). Khi thầy/cô chọn hoặc nhập một hoạt động con nào, hệ thống <span className="font-black text-red-600 underline">CHỈ tích hợp NLS & NLAI vào đúng hoạt động đó</span>, tuyệt đối không tích hợp vào tất cả các hoạt động còn lại!
           </p>
 
-          {/* Quick presets */}
-          <div className="flex flex-wrap items-center gap-1.5 pt-1">
-            <span className="text-[10px] font-bold text-sky-800">Chọn nhanh:</span>
-            {[
-              { label: 'HĐ 2.1', value: 'Hoạt động 2.1' },
-              { label: 'HĐ 2.2', value: 'Hoạt động 2.2' },
-              { label: 'HĐ 2.3', value: 'Hoạt động 2.3' },
-              { label: 'HĐ 2.4', value: 'Hoạt động 2.4' },
-            ].map(preset => {
-              const isActive = customActivityName?.trim().toLowerCase().startsWith(preset.value.toLowerCase());
-              return (
-                <button
-                  key={preset.value}
-                  type="button"
-                  onClick={() => onCustomActivityNameChange?.(preset.value)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all border ${
-                    isActive
-                      ? 'bg-sky-700 text-white border-sky-900 shadow-sm'
-                      : 'bg-white text-sky-800 border-sky-200 hover:bg-sky-100'
-                  }`}
-                >
-                  {preset.label}
-                </button>
-              );
-            })}
-          </div>
+          {/* Quick presets & Multi-line input */}
+          {(() => {
+            const subActivityList = (customActivityName || '')
+              .split('\n')
+              .map(s => s.trim())
+              .filter(Boolean);
 
-          {/* Custom Sub-activity input */}
-          <div className="relative">
-            <input
-              type="text"
-              value={customActivityName || ''}
-              onChange={(e) => onCustomActivityNameChange?.(e.target.value)}
-              placeholder="VD: Hoạt động 2.1: Cấu tạo nguyên tử, phân tử sulfur (hoặc dán tên hoạt động con)..."
-              className="w-full px-3 py-2 text-xs font-bold text-sky-950 bg-white border-2 border-sky-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 placeholder:text-sky-400/80 shadow-inner"
-            />
-          </div>
+            const handleTogglePreset = (presetValue: string) => {
+              const exists = subActivityList.some(s => s.toLowerCase().startsWith(presetValue.toLowerCase()));
+              let nextList: string[];
+              if (exists) {
+                nextList = subActivityList.filter(s => !s.toLowerCase().startsWith(presetValue.toLowerCase()));
+              } else {
+                nextList = [...subActivityList, presetValue];
+              }
+              onCustomActivityNameChange?.(nextList.join('\n'));
+            };
 
-          {customActivityName ? (
-            <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-800 bg-emerald-100/90 px-2.5 py-1 rounded-md border border-emerald-300">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 flex-shrink-0" />
-              <span>
-                Đã chỉ định: <strong className="text-emerald-950">"{customActivityName}"</strong>. Chỉ hoạt động này được tích hợp NLS/AI; các hoạt động 2.2, 2.3... và HĐ 1, 3, 4 giữ nguyên bản 100%!
-              </span>
-            </div>
-          ) : (
-            <div className="text-[10px] text-amber-800 bg-amber-50 px-2 py-1 rounded border border-amber-200">
-              💡 Thầy/cô có thể nhập tên hoạt động con ở trên HOẶC chỉ dán đúng nội dung hoạt động con đó vào ô văn bản giáo án. AI sẽ tự động khoanh vùng chuẩn xác.
-            </div>
-          )}
+            const handleRemoveItem = (indexToRemove: number) => {
+              const nextList = subActivityList.filter((_, idx) => idx !== indexToRemove);
+              onCustomActivityNameChange?.(nextList.join('\n'));
+            };
+
+            return (
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-[10px] font-bold text-sky-800">Chọn nhanh (bấm để thêm/bỏ):</span>
+                  {[
+                    { label: '+ HĐ 2.1', value: 'Hoạt động 2.1' },
+                    { label: '+ HĐ 2.2', value: 'Hoạt động 2.2' },
+                    { label: '+ HĐ 2.3', value: 'Hoạt động 2.3' },
+                    { label: '+ HĐ 2.4', value: 'Hoạt động 2.4' },
+                  ].map(preset => {
+                    const isActive = subActivityList.some(s => s.toLowerCase().startsWith(preset.value.toLowerCase()));
+                    return (
+                      <button
+                        key={preset.value}
+                        type="button"
+                        onClick={() => handleTogglePreset(preset.value)}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all border ${
+                          isActive
+                            ? 'bg-sky-700 text-white border-sky-900 shadow-sm ring-1 ring-sky-400'
+                            : 'bg-white text-sky-800 border-sky-200 hover:bg-sky-100'
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Sub-activity Chips */}
+                {subActivityList.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-sky-100/70 rounded-lg border border-sky-300">
+                    <span className="text-[10px] font-black text-sky-900">Đã chọn ({subActivityList.length}):</span>
+                    {subActivityList.map((item, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-white text-sky-950 border border-sky-400 shadow-2xs"
+                      >
+                        <span>{item}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItem(idx)}
+                          className="text-sky-400 hover:text-red-600 font-black ml-0.5"
+                          title="Xóa tiểu hoạt động này"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Custom Sub-activity textarea with Enter support */}
+                <div className="relative">
+                  <textarea
+                    value={customActivityName || ''}
+                    onChange={(e) => onCustomActivityNameChange?.(e.target.value)}
+                    rows={Math.max(2, Math.min(5, (customActivityName || '').split('\n').length + 1))}
+                    placeholder="Nhập tên hoạt động con và nhấn ENTER để thêm dòng mới, ví dụ:&#10;Hoạt động 2.1: Cấu tạo nguyên tử, phân tử sulfur&#10;Hoạt động 2.2: Tính chất hóa học của sulfur (nhấn Enter để thêm tiếp)..."
+                    className="w-full px-3 py-2 text-xs font-bold text-sky-950 bg-white border-2 border-sky-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 placeholder:text-sky-400/80 shadow-inner resize-y font-sans"
+                  />
+                  <div className="flex items-center justify-between mt-1 text-[9.5px] text-sky-700 font-semibold px-1">
+                    <span>💡 <strong>Mẹo:</strong> Nhấn phím <strong>ENTER</strong> để xuống dòng nhập thêm nhiều hoạt động con khác nhau.</span>
+                    {customActivityName && (
+                      <span className="font-bold text-sky-900">{subActivityList.length} hoạt động con</span>
+                    )}
+                  </div>
+                </div>
+
+                {subActivityList.length > 0 ? (
+                  <div className="flex items-start gap-1.5 text-[10px] font-black text-emerald-800 bg-emerald-100/90 px-2.5 py-1.5 rounded-md border border-emerald-300">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-700 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <span>
+                        Đã chỉ định {subActivityList.length} tiểu hoạt động: <strong className="text-emerald-950">"{subActivityList.join('", "')}"</strong>.
+                      </span>
+                      <p className="text-[9.5px] text-emerald-900 mt-0.5 font-bold">
+                        👉 Chỉ đúng {subActivityList.length === 1 ? 'tiểu hoạt động này' : 'các tiểu hoạt động này'} được tích hợp NLS/AI; các hoạt động con khác và HĐ 1, 3, 4 giữ nguyên bản 100%!
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-amber-800 bg-amber-50 px-2.5 py-1.5 rounded border border-amber-200">
+                    💡 Thầy/cô có thể nhập tên hoạt động con ở trên (nhấn ENTER để nhập nhiều hoạt động con) HOẶC chỉ dán đúng nội dung hoạt động con đó vào ô văn bản giáo án. AI sẽ tự động khoanh vùng chuẩn xác.
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -239,7 +300,7 @@ export const ActivitySelector: React.FC<ActivitySelectorProps> = ({
           <span>Đang chọn tích hợp: </span>
           <span className="font-black text-red-600 uppercase">
             {ACTIVITIES.find(a => a.id === selectedMode)?.name || 'Tùy chọn'}
-            {selectedMode === 'act2' && customActivityName ? ` ➜ [${customActivityName}]` : ''}
+            {selectedMode === 'act2' && customActivityName ? ` ➜ [${customActivityName.split('\n').filter(Boolean).join(' | ')}]` : ''}
           </span>
         </div>
       </div>

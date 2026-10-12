@@ -89,6 +89,116 @@ export const DIGITAL_COMPETENCIES: Competency[] = [
 ];
 
 export const AI_COMPETENCIES: Competency[] = [
+  // =========================================================================
+  // CẤP TRUNG HỌC CƠ SỞ (THCS) - LỚP 6, 7, 8, 9 (Theo QĐ 2422/QĐ-BGDĐT)
+  // =========================================================================
+
+  // --- LỚP 6 ---
+  // A. Tư duy lấy con người làm trung tâm
+  { id: '6.A1.1', name: 'Nhận biết AI là sản phẩm do con người tạo ra, lập trình và điều khiển; AI không tự sinh ra hoặc hoạt động độc lập với con người', domain: 'Lớp 6 - A. Tư duy lấy con người làm trung tâm' },
+  { id: '6.A1.2', name: 'Nhận biết vai trò quyết định và kiểm soát của con người đối với công cụ AI trong học tập và đời sống', domain: 'Lớp 6 - A. Tư duy lấy con người làm trung tâm' },
+  { id: '6.A1.MR1', name: 'Nêu ví dụ về vai trò của con người trong các giai đoạn phát triển và sử dụng sản phẩm AI', domain: 'Lớp 6 - A. Tư duy lấy con người làm trung tâm' },
+  { id: '6.A2.1', name: 'Nhận biết lợi ích và một số tác động tiêu cực của việc lạm dụng AI đối với việc tự học của học sinh', domain: 'Lớp 6 - A. Tư duy lấy con người làm trung tâm' },
+  
+  // B. Đạo đức AI
+  { id: '6.B1.1', name: 'Chỉ ra mặt tích cực và hạn chế của một số tính năng AI (tính năng gợi ý nhanh nhưng nguy cơ ảnh hưởng quyền riêng tư)', domain: 'Lớp 6 - B. Đạo đức AI' },
+  { id: '6.B1.MR1', name: 'Thảo luận về tính chính xác và thiên vị thông tin của AI khi tìm kiếm dữ liệu phục vụ học tập', domain: 'Lớp 6 - B. Đạo đức AI' },
+  { id: '6.B2.1', name: 'Đặt câu hỏi kiểm tra tính an toàn, bảo mật và minh bạch của ứng dụng AI trước khi sử dụng', domain: 'Lớp 6 - B. Đạo đức AI' },
+  { id: '6.B2.2', name: 'Kiểm tra lại kết quả do AI cung cấp trước khi sử dụng; đối chiếu với SGK hoặc nguồn tin cậy', domain: 'Lớp 6 - B. Đạo đức AI' },
+
+  // C. Các kĩ thuật và ứng dụng AI
+  { id: '6.C1.1', name: 'Giải thích dữ liệu (văn bản, hình ảnh, âm thanh) là nguyên liệu để huấn luyện ("dạy") AI', domain: 'Lớp 6 - C. Các kĩ thuật và ứng dụng AI' },
+  { id: '6.C1.MR1', name: 'Mô tả các bước hoạt động chính của một công cụ AI đơn giản (thu nhận dữ liệu, xử lý, đưa ra kết quả)', domain: 'Lớp 6 - C. Các kĩ thuật và ứng dụng AI' },
+  { id: '6.C2.1', name: 'Phân biệt tính năng tìm kiếm thông thường và tìm kiếm thông minh có ứng dụng AI trong học tập', domain: 'Lớp 6 - C. Các kĩ thuật và ứng dụng AI' },
+  { id: '6.C2.2', name: 'Làm quen và sử dụng ứng dụng AI hỗ trợ tạo hình ảnh, dịch thuật hoặc tra cứu kiến thức học tập', domain: 'Lớp 6 - C. Các kĩ thuật và ứng dụng AI' },
+  { id: '6.C2.MR1', name: 'Sử dụng công cụ AI tạo sản phẩm học tập số đơn giản (hình minh họa, câu hỏi ôn tập, dịch từ vựng)', domain: 'Lớp 6 - C. Các kĩ thuật và ứng dụng AI' },
+
+  // D. Thiết kế hệ thống AI
+  { id: '6.D1.1', name: 'Xác định tình huống nên hoặc không nên sử dụng AI để tìm kiếm thông tin hỗ trợ học tập (không làm hộ bài tập)', domain: 'Lớp 6 - D. Thiết kế hệ thống AI' },
+  { id: '6.D1.MR1', name: 'Đề xuất ý tưởng sử dụng AI giải quyết một vấn đề đơn giản trong lớp học hoặc gia đình', domain: 'Lớp 6 - D. Thiết kế hệ thống AI' },
+  { id: '6.D2.1', name: 'Trình bày giới hạn của AI so với con người (AI không có cảm xúc, trực giác, tính sáng tạo thực thụ)', domain: 'Lớp 6 - D. Thiết kế hệ thống AI' },
+
+  // --- LỚP 7 ---
+  // A. Tư duy lấy con người làm trung tâm
+  { id: '7.A1.1', name: 'Giải thích lí do con người cần giữ quyền ra quyết định khi sử dụng AI (đảm bảo công bằng, an toàn, quyền lợi)', domain: 'Lớp 7 - A. Tư duy lấy con người làm trung tâm' },
+  { id: '7.A1.MR1', name: 'Trình bày ví dụ về xung đột giữa quyền tự chủ của con người và mức độ tự động của AI', domain: 'Lớp 7 - A. Tư duy lấy con người làm trung tâm' },
+  { id: '7.A2.1', name: 'Phân tích hậu quả nếu giao cho AI quyền quyết định cuối cùng trong những tình huống cần sự phán đoán của con người', domain: 'Lớp 7 - A. Tư duy lấy con người làm trung tâm' },
+  { id: '7.A2.MR1', name: 'Nêu vai trò kiểm soát của con người khi sử dụng các hệ thống gợi ý và chấm điểm tự động', domain: 'Lớp 7 - A. Tư duy lấy con người làm trung tâm' },
+
+  // B. Đạo đức AI
+  { id: '7.B1.1', name: 'Nhận biết trách nhiệm cá nhân khi sử dụng AI trong môi trường số; khai báo trung thực khi dùng AI hỗ trợ bài tập', domain: 'Lớp 7 - B. Đạo đức AI' },
+  { id: '7.B1.MR1', name: 'Nêu ví dụ về hành động góp phần xây dựng môi trường sử dụng AI an toàn, có đạo đức và văn minh', domain: 'Lớp 7 - B. Đạo đức AI' },
+  { id: '7.B2.1', name: 'Kiểm chứng thông tin do AI tạo ra bằng ít nhất một nguồn thông tin độc lập và đáng tin cậy khác (SGK, sách tham khảo)', domain: 'Lớp 7 - B. Đạo đức AI' },
+  { id: '7.B2.2', name: 'Nêu các tiêu chí đánh giá mức độ phù hợp và an toàn của một ứng dụng AI đối với học sinh THCS', domain: 'Lớp 7 - B. Đạo đức AI' },
+
+  // C. Các kĩ thuật và ứng dụng AI
+  { id: '7.C1.1', name: 'Mô tả cách AI nhận diện mẫu hình ảnh, âm thanh hoặc chữ viết dựa trên dữ liệu mẫu được cung cấp', domain: 'Lớp 7 - C. Các kĩ thuật và ứng dụng AI' },
+  { id: '7.C1.MR1', name: 'Nhận biết khái niệm mô hình học máy (Machine Learning) qua các công cụ trực quan (như Teachable Machine)', domain: 'Lớp 7 - C. Các kĩ thuật và ứng dụng AI' },
+  { id: '7.C2.1', name: 'Khám phá và sử dụng ứng dụng AI hỗ trợ giao tiếp, chỉnh sửa văn bản, tạo bài thuyết trình trong học tập', domain: 'Lớp 7 - C. Các kĩ thuật và ứng dụng AI' },
+  { id: '7.C2.2', name: 'Thực hành đặt câu lệnh (prompt) có cấu trúc rõ ràng để AI hỗ trợ giải thích khái niệm học tập', domain: 'Lớp 7 - C. Các kĩ thuật và ứng dụng AI' },
+  { id: '7.C2.MR1', name: 'So sánh kết quả trả về của AI khi sử dụng các câu lệnh (prompt) khác nhau cùng một chủ đề', domain: 'Lớp 7 - C. Các kĩ thuật và ứng dụng AI' },
+
+  // D. Thiết kế hệ thống AI
+  { id: '7.D1.1', name: 'Nêu ví dụ về vấn đề trong trường học hoặc cộng đồng mà AI có thể hỗ trợ cải thiện (phân loại rác, nhắc lịch học)', domain: 'Lớp 7 - D. Thiết kế hệ thống AI' },
+  { id: '7.D2.1', name: 'Lập kế hoạch cho một dự án sáng tạo có sử dụng AI theo nhóm nhỏ (xác định mục tiêu, công cụ, phân công)', domain: 'Lớp 7 - D. Thiết kế hệ thống AI' },
+  { id: '7.D2.MR1', name: 'Thực hành tạo sản phẩm học tập đơn giản (sơ đồ tư duy, infographic, video ngắn) theo kế hoạch đã xây dựng', domain: 'Lớp 7 - D. Thiết kế hệ thống AI' },
+
+  // --- LỚP 8 ---
+  // A. Tư duy lấy con người làm trung tâm
+  { id: '8.A1.1', name: 'Nêu tên lĩnh vực AI không nên thay thế con người (giáo dục đạo đức, tâm lí học sinh, y tế, nghệ thuật cảm xúc)', domain: 'Lớp 8 - A. Tư duy lấy con người làm trung tâm' },
+  { id: '8.A1.2', name: 'Nhận biết nguy cơ suy giảm tư duy phản biện, kĩ năng sáng tạo và cảm xúc cá nhân khi quá phụ thuộc vào AI', domain: 'Lớp 8 - A. Tư duy lấy con người làm trung tâm' },
+  { id: '8.A1.MR1', name: 'Phân tích tác động của AI đối với cơ cấu việc làm và định hướng nghề nghiệp trong tương lai của học sinh', domain: 'Lớp 8 - A. Tư duy lấy con người làm trung tâm' },
+  { id: '8.A2.1', name: 'Nhận diện tư duy lấy con người làm trung tâm khi đánh giá một công cụ hay ứng dụng AI trong học đường', domain: 'Lớp 8 - A. Tư duy lấy con người làm trung tâm' },
+
+  // B. Đạo đức AI
+  { id: '8.B1.1', name: 'Nhận diện và phân loại rủi ro khi sử dụng AI: dữ liệu cá nhân, quyền riêng tư, thuật toán thiên vị, nội dung lừa đảo', domain: 'Lớp 8 - B. Đạo đức AI' },
+  { id: '8.B1.MR1', name: 'Phân tích tác hại của tin giả (fake news) và nội dung xuyên tạc do AI tạo sinh đối với học sinh và xã hội', domain: 'Lớp 8 - B. Đạo đức AI' },
+  { id: '8.B2.1', name: 'Thực hiện quy tắc ứng xử có trách nhiệm, liêm chính học thuật: ghi rõ nguồn học liệu và phạm vi hỗ trợ của AI', domain: 'Lớp 8 - B. Đạo đức AI' },
+  { id: '8.B2.MR1', name: 'Đề xuất biện pháp phòng tránh và bảo vệ bản thân trước các hình thức lừa đảo ứng dụng giọng nói, khuôn mặt AI', domain: 'Lớp 8 - B. Đạo đức AI' },
+
+  // C. Các kĩ thuật và ứng dụng AI
+  { id: '8.C1.1', name: 'Mô tả cách AI thực hiện chức năng cơ bản: "đọc", "nghe", "nhìn" (chuyển đổi giọng nói - văn bản, phân tích đặc trưng ảnh)', domain: 'Lớp 8 - C. Các kĩ thuật và ứng dụng AI' },
+  { id: '8.C1.MR1', name: 'Hiểu vai trò của thuật toán tìm kiếm thông minh và phân loại dữ liệu trong các hệ sinh thái mạng xã hội', domain: 'Lớp 8 - C. Các kĩ thuật và ứng dụng AI' },
+  { id: '8.C2.1', name: 'Vận dụng công cụ AI hỗ trợ thu thập dữ liệu, phân loại tài liệu học tập và tổng hợp thông tin đa nguồn', domain: 'Lớp 8 - C. Các kĩ thuật và ứng dụng AI' },
+  { id: '8.C3.1', name: 'Thực hành kĩ thuật prompt có tiêu chí cụ thể: vai trò chuyên gia, ngữ cảnh, định dạng đầu ra, ràng buộc độ dài', domain: 'Lớp 8 - C. Các kĩ thuật và ứng dụng AI' },
+  { id: '8.C3.MR1', name: 'Đánh giá chất lượng phản hồi của AI và biết cách điều chỉnh prompt để đạt câu trả lời chính xác, hữu ích hơn', domain: 'Lớp 8 - C. Các kĩ thuật và ứng dụng AI' },
+
+  // D. Thiết kế hệ thống AI
+  { id: '8.D1.1', name: 'Mô tả cấu trúc cơ bản của hệ thống giải quyết vấn đề bằng công nghệ: Dữ liệu đầu vào -> Xử lý (AI/Thuật toán) -> Đầu ra', domain: 'Lớp 8 - D. Thiết kế hệ thống AI' },
+  { id: '8.D1.MR1', name: 'Xây dựng kịch bản hoặc sơ đồ khối mô tả quy trình ứng dụng AI giải quyết nhiệm vụ học tập liên môn', domain: 'Lớp 8 - D. Thiết kế hệ thống AI' },
+  { id: '8.D2.1', name: 'Thực hành huấn luyện một mô hình AI đơn giản bằng công cụ trực quan không cần viết mã (nhận dạng hình ảnh/âm thanh)', domain: 'Lớp 8 - D. Thiết kế hệ thống AI' },
+  { id: '8.D2.MR1', name: 'Kiểm thử mô hình AI vừa huấn luyện với dữ liệu mới và nhận xét các trường hợp mô hình nhận diện đúng/sai', domain: 'Lớp 8 - D. Thiết kế hệ thống AI' },
+
+  // --- LỚP 9 ---
+  // A. Tư duy lấy con người làm trung tâm
+  { id: '9.A1.1', name: 'Nhận biết cách AI hỗ trợ phát triển cộng đồng và giải quyết các vấn đề xã hội (môi trường, giáo dục, y tế cộng đồng)', domain: 'Lớp 9 - A. Tư duy lấy con người làm trung tâm' },
+  { id: '9.A1.2', name: 'Hiểu rõ trách nhiệm của công dân số khi sử dụng AI để sáng tạo nội dung và chia sẻ thông tin cộng đồng', domain: 'Lớp 9 - A. Tư duy lấy con người làm trung tâm' },
+  { id: '9.A1.MR1', name: 'Đánh giá mức độ chủ động của bản thân khi ứng dụng AI phục vụ ôn tập thi chuyển cấp và phát triển năng lực', domain: 'Lớp 9 - A. Tư duy lấy con người làm trung tâm' },
+  { id: '9.A2.1', name: 'Phân tích vai trò con người trong việc ra quyết định, xác thực kết quả và chịu trách nhiệm đạo đức về sản phẩm AI', domain: 'Lớp 9 - A. Tư duy lấy con người làm trung tâm' },
+
+  // B. Đạo đức AI
+  { id: '9.B1.1', name: 'Phân tích các dấu hiệu của nội dung giả mạo Deepfake; đề xuất giải pháp ứng phó với nội dung sai sự thật, lừa đảo', domain: 'Lớp 9 - B. Đạo đức AI' },
+  { id: '9.B1.MR1', name: 'Thảo luận về vấn đề bản quyền, sở hữu trí tuệ và quyền tác giả đối với tranh ảnh, văn bản do AI tạo sinh', domain: 'Lớp 9 - B. Đạo đức AI' },
+  { id: '9.B2.1', name: 'Cam kết và thực hiện liêm chính học thuật: không sao chép nguyên văn câu trả lời AI vào bài thi, bài kiểm tra', domain: 'Lớp 9 - B. Đạo đức AI' },
+  { id: '9.B2.MR1', name: 'Xây dựng bộ quy tắc ứng xử văn minh và sử dụng AI an toàn cho nhóm học tập hoặc chi đội/lớp học', domain: 'Lớp 9 - B. Đạo đức AI' },
+
+  // C. Các kĩ thuật và ứng dụng AI
+  { id: '9.C1.1', name: 'Giải thích nguyên lí chung của AI tạo sinh (Generative AI) và cách mô hình dự đoán từ ngữ/điểm ảnh tiếp theo', domain: 'Lớp 9 - C. Các kĩ thuật và ứng dụng AI' },
+  { id: '9.C1.MR1', name: 'Phân biệt giữa AI truyền thống (theo quy tắc cứng) và AI hiện đại dựa trên học máy (học từ dữ liệu lớn)', domain: 'Lớp 9 - C. Các kĩ thuật và ứng dụng AI' },
+  { id: '9.C2.1', name: 'Ứng dụng AI để tìm kiếm thông tin chuyên sâu, tóm tắt tài liệu khoa học và lập dàn ý bài báo cáo học tập', domain: 'Lớp 9 - C. Các kĩ thuật và ứng dụng AI' },
+  { id: '9.C3.1', name: 'Sử dụng kĩ thuật prompt nhiều bước (multi-step prompting) để tinh chỉnh lời giải, mở rộng bài toán phức tạp', domain: 'Lớp 9 - C. Các kĩ thuật và ứng dụng AI' },
+  { id: '9.C3.MR1', name: 'Đánh giá độ tin cậy của mô hình ngôn ngữ lớn (LLM); nhận biết hiện tượng ảo giác (hallucination) của AI', domain: 'Lớp 9 - C. Các kĩ thuật và ứng dụng AI' },
+
+  // D. Thiết kế hệ thống AI
+  { id: '9.D1.1', name: 'Lập kế hoạch và phân công làm việc nhóm phát triển sản phẩm học tập tích hợp AI (chatbot, mô hình phân loại)', domain: 'Lớp 9 - D. Thiết kế hệ thống AI' },
+  { id: '9.D1.MR1', name: 'Xác định yêu cầu người dùng, luồng xử lý và dữ liệu cần thu thập cho dự án công nghệ học đường', domain: 'Lớp 9 - D. Thiết kế hệ thống AI' },
+  { id: '9.D2.1', name: 'Triển khai xây dựng sản phẩm AI đơn giản bằng các nền tảng có sẵn (Teachable Machine, App Inventor AI, CoSpaces)', domain: 'Lớp 9 - D. Thiết kế hệ thống AI' },
+  { id: '9.D2.MR1', name: 'Báo cáo, thuyết trình giới thiệu sản phẩm AI của nhóm và thực hiện đánh giá phản biện chéo với nhóm bạn', domain: 'Lớp 9 - D. Thiết kế hệ thống AI' },
+
+  // =========================================================================
+  // CẤP TRUNG HỌC PHỔ THÔNG (THPT) - LỚP 10, 11, 12
+  // =========================================================================
+
   // --- LỚP 10 ---
   { id: '10.A1.1', name: 'Thực hành xác định vai trò của con người trong sử dụng, vận hành, tùy chỉnh hệ thống AI', domain: 'Lớp 10 - A. Tư duy lấy con người làm trung tâm' },
   { id: '10.A1.2', name: 'Giải thích tầm quan trọng của việc con người kiểm soát AI (an toàn, công bằng, quyền lợi)', domain: 'Lớp 10 - A. Tư duy lấy con người làm trung tâm' },

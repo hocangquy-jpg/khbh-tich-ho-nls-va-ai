@@ -13,15 +13,21 @@ interface AICompetencySelectorProps {
 
 export const AICompetencySelector: React.FC<AICompetencySelectorProps> = ({ selectedIds, onChange }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [activeGrade, setActiveGrade] = useState<'all' | '10' | '11' | '12'>('all');
+  const [activeGrade, setActiveGrade] = useState<'all' | 'thcs' | 'thpt' | '6' | '7' | '8' | '9' | '10' | '11' | '12'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Extract Grade and group competencies
   const parsedCompetencies = useMemo(() => {
     return AI_COMPETENCIES.map(comp => {
       let grade = '10';
-      if (comp.id.startsWith('11.') || comp.domain.includes('Lớp 11')) grade = '11';
+      if (comp.id.startsWith('6.') || comp.domain.includes('Lớp 6')) grade = '6';
+      else if (comp.id.startsWith('7.') || comp.domain.includes('Lớp 7')) grade = '7';
+      else if (comp.id.startsWith('8.') || comp.domain.includes('Lớp 8')) grade = '8';
+      else if (comp.id.startsWith('9.') || comp.domain.includes('Lớp 9')) grade = '9';
+      else if (comp.id.startsWith('11.') || comp.domain.includes('Lớp 11')) grade = '11';
       else if (comp.id.startsWith('12.') || comp.domain.includes('Lớp 12')) grade = '12';
+
+      const isTHCS = ['6', '7', '8', '9'].includes(grade);
 
       // Clean domain name for display (e.g. "A. Tư duy lấy con người làm trung tâm")
       const cleanDomain = comp.domain.replace(/^Lớp\s+\d+\s*-\s*/i, '').trim();
@@ -29,6 +35,7 @@ export const AICompetencySelector: React.FC<AICompetencySelectorProps> = ({ sele
       return {
         ...comp,
         grade,
+        isTHCS,
         cleanDomain
       };
     });
@@ -37,7 +44,12 @@ export const AICompetencySelector: React.FC<AICompetencySelectorProps> = ({ sele
   // Filter competencies based on active grade tab and search query
   const filteredCompetencies = useMemo(() => {
     return parsedCompetencies.filter(comp => {
-      const matchesGrade = activeGrade === 'all' || comp.grade === activeGrade;
+      let matchesGrade = true;
+      if (activeGrade === 'all') matchesGrade = true;
+      else if (activeGrade === 'thcs') matchesGrade = comp.isTHCS;
+      else if (activeGrade === 'thpt') matchesGrade = !comp.isTHCS;
+      else matchesGrade = comp.grade === activeGrade;
+
       const query = searchQuery.trim().toLowerCase();
       if (!query) return matchesGrade;
 
@@ -55,7 +67,9 @@ export const AICompetencySelector: React.FC<AICompetencySelectorProps> = ({ sele
   const groupedByDomain = useMemo(() => {
     const groups: Record<string, typeof parsedCompetencies> = {};
     filteredCompetencies.forEach(comp => {
-      const groupKey = activeGrade === 'all' ? comp.domain : comp.cleanDomain;
+      const groupKey = activeGrade === 'all' || activeGrade === 'thcs' || activeGrade === 'thpt' 
+        ? comp.domain 
+        : comp.cleanDomain;
       if (!groups[groupKey]) groups[groupKey] = [];
       groups[groupKey].push(comp);
     });
@@ -98,6 +112,13 @@ export const AICompetencySelector: React.FC<AICompetencySelectorProps> = ({ sele
     onChange([]);
   };
 
+  const gradeFilterLabel = useMemo(() => {
+    if (activeGrade === 'all') return '';
+    if (activeGrade === 'thcs') return 'THCS (Lớp 6-9)';
+    if (activeGrade === 'thpt') return 'THPT (Lớp 10-12)';
+    return `Lớp ${activeGrade}`;
+  }, [activeGrade]);
+
   return (
     <div className="bg-white border-t-2 md:border-t-0 md:border-l-2 border-[#1a230f] flex flex-col">
       {/* Header Button */}
@@ -116,7 +137,7 @@ export const AICompetencySelector: React.FC<AICompetencySelectorProps> = ({ sele
                 Khung Năng Lực AI (NLAI)
               </h3>
               <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-black uppercase bg-amber-100 text-amber-900 border border-amber-300 rounded-md">
-                Lớp 10 - 11 - 12
+                Lớp 6 - 7 - 8 - 9 &amp; 10 - 11 - 12
               </span>
             </div>
             <p className="text-xs text-amber-700 font-bold mt-0.5 flex items-center gap-1.5">
@@ -144,72 +165,98 @@ export const AICompetencySelector: React.FC<AICompetencySelectorProps> = ({ sele
         <div className="p-4 md:p-5 bg-gradient-to-b from-amber-50/40 via-white to-amber-50/30 border-t-2 border-amber-200 space-y-4">
           
           {/* Grade Filter Tabs */}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-amber-100 pb-3">
-            <div className="flex items-center gap-1.5 p-1 bg-amber-100/70 rounded-xl border border-amber-300">
-              <button
-                type="button"
-                onClick={() => setActiveGrade('all')}
-                className={`px-3 py-1.5 rounded-lg font-black text-xs uppercase tracking-tight transition-all ${
-                  activeGrade === 'all'
-                    ? 'bg-amber-700 text-white shadow-xs'
-                    : 'text-amber-900 hover:bg-amber-200/70'
-                }`}
-              >
-                Tất cả ({AI_COMPETENCIES.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveGrade('10')}
-                className={`px-3 py-1.5 rounded-lg font-black text-xs uppercase tracking-tight transition-all ${
-                  activeGrade === '10'
-                    ? 'bg-amber-700 text-white shadow-xs'
-                    : 'text-amber-900 hover:bg-amber-200/70'
-                }`}
-              >
-                Lớp 10
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveGrade('11')}
-                className={`px-3 py-1.5 rounded-lg font-black text-xs uppercase tracking-tight transition-all ${
-                  activeGrade === '11'
-                    ? 'bg-amber-700 text-white shadow-xs'
-                    : 'text-amber-900 hover:bg-amber-200/70'
-                }`}
-              >
-                Lớp 11
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveGrade('12')}
-                className={`px-3 py-1.5 rounded-lg font-black text-xs uppercase tracking-tight transition-all ${
-                  activeGrade === '12'
-                    ? 'bg-amber-700 text-white shadow-xs'
-                    : 'text-amber-900 hover:bg-amber-200/70'
-                }`}
-              >
-                Lớp 12
-              </button>
+          <div className="flex flex-col gap-2.5 border-b-2 border-amber-100 pb-3">
+            {/* Level Quick Switch: Tất cả | Cấp THCS (6-9) | Cấp THPT (10-12) */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-1.5 p-1 bg-amber-100/70 rounded-xl border border-amber-300">
+                <button
+                  type="button"
+                  onClick={() => setActiveGrade('all')}
+                  className={`px-2.5 py-1 rounded-lg font-black text-xs uppercase tracking-tight transition-all ${
+                    activeGrade === 'all'
+                      ? 'bg-amber-700 text-white shadow-xs'
+                      : 'text-amber-900 hover:bg-amber-200/70'
+                  }`}
+                >
+                  Tất cả ({AI_COMPETENCIES.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveGrade('thcs')}
+                  className={`px-2.5 py-1 rounded-lg font-black text-xs uppercase tracking-tight transition-all ${
+                    activeGrade === 'thcs'
+                      ? 'bg-emerald-700 text-white shadow-xs'
+                      : 'text-emerald-900 bg-emerald-100/70 hover:bg-emerald-200/70'
+                  }`}
+                >
+                  🏫 Khối THCS (Lớp 6,7,8,9)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveGrade('thpt')}
+                  className={`px-2.5 py-1 rounded-lg font-black text-xs uppercase tracking-tight transition-all ${
+                    activeGrade === 'thpt'
+                      ? 'bg-amber-800 text-white shadow-xs'
+                      : 'text-amber-950 bg-amber-200/60 hover:bg-amber-300/70'
+                  }`}
+                >
+                  🎓 Khối THPT (Lớp 10,11,12)
+                </button>
+              </div>
+
+              {/* Quick action buttons */}
+              <div className="flex items-center gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={selectCurrentFiltered}
+                  className="px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-900 font-black rounded-lg border border-amber-300 shadow-2xs transition-all active:scale-95"
+                  title="Chọn các mục đang hiển thị"
+                >
+                  + Chọn hết {gradeFilterLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={deselectCurrentFiltered}
+                  className="px-2.5 py-1 bg-white hover:bg-red-50 text-slate-600 hover:text-red-700 font-bold rounded-lg border border-slate-300 shadow-2xs transition-all active:scale-95"
+                  title="Bỏ chọn các mục đang hiển thị"
+                >
+                  Bỏ chọn
+                </button>
+              </div>
             </div>
 
-            {/* Quick action buttons */}
-            <div className="flex items-center gap-2 text-xs">
-              <button
-                type="button"
-                onClick={selectCurrentFiltered}
-                className="px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-900 font-black rounded-lg border border-amber-300 shadow-2xs transition-all active:scale-95"
-                title="Chọn các mục đang hiển thị"
-              >
-                + Chọn hết {activeGrade !== 'all' ? `Lớp ${activeGrade}` : ''}
-              </button>
-              <button
-                type="button"
-                onClick={deselectCurrentFiltered}
-                className="px-2.5 py-1 bg-white hover:bg-red-50 text-slate-600 hover:text-red-700 font-bold rounded-lg border border-slate-300 shadow-2xs transition-all active:scale-95"
-                title="Bỏ chọn các mục đang hiển thị"
-              >
-                Bỏ chọn
-              </button>
+            {/* Individual Grade Pills: 6 | 7 | 8 | 9 | 10 | 11 | 12 */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[11px] font-bold text-amber-900 mr-1">Từng khối lớp:</span>
+              {(['6', '7', '8', '9'] as const).map(gr => (
+                <button
+                  key={gr}
+                  type="button"
+                  onClick={() => setActiveGrade(gr)}
+                  className={`px-2.5 py-1 rounded-lg font-black text-xs transition-all border ${
+                    activeGrade === gr
+                      ? 'bg-emerald-700 text-white border-emerald-800 shadow-xs scale-105'
+                      : 'bg-emerald-50 text-emerald-900 border-emerald-300 hover:bg-emerald-100'
+                  }`}
+                >
+                  Lớp {gr}
+                </button>
+              ))}
+              <span className="text-amber-300 mx-1">|</span>
+              {(['10', '11', '12'] as const).map(gr => (
+                <button
+                  key={gr}
+                  type="button"
+                  onClick={() => setActiveGrade(gr)}
+                  className={`px-2.5 py-1 rounded-lg font-black text-xs transition-all border ${
+                    activeGrade === gr
+                      ? 'bg-amber-700 text-white border-amber-800 shadow-xs scale-105'
+                      : 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100'
+                  }`}
+                >
+                  Lớp {gr}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -220,7 +267,7 @@ export const AICompetencySelector: React.FC<AICompetencySelectorProps> = ({ sele
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm nhanh mã NL (vd: 10.C3, 11.A1, 12.D) hoặc từ khóa (prompt, mô hình, dữ liệu, đạo đức)..."
+              placeholder="Tìm nhanh mã NL (vd: 6.A1, 7.C2, 8.B1, 9.D, 10.C3) hoặc từ khóa (prompt, kiểm chứng, deepfake, đạo đức)..."
               className="w-full pl-9 pr-8 py-2 bg-white border-2 border-amber-300 rounded-xl text-xs md:text-sm font-semibold text-slate-800 placeholder:text-amber-400 focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-200 transition-all shadow-xs"
             />
             {searchQuery && (
